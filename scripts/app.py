@@ -121,16 +121,22 @@ st.success(f"Database loaded: {len(df_bp):,} base pairs")
 # Everything below here is normal app logic
 # ==================================================
 
+# ==================================================
+# User inputs
+# ==================================================
+
 st.subheader("Search criteria")
 
 bp = st.selectbox(
     "Select base pair",
-    sorted(df_bp["base_pair"].unique())
+    sorted(df_bp["base_pair"].unique()),
+    key="bp_select"
 )
 
 hbonds_input = st.text_input(
     "Hydrogen bonds (comma-separated)",
-    placeholder="e.g. O6-N3, N2-O2"
+    placeholder="e.g. O6-N3, N2-O2",
+    key="hbonds_input"
 )
 
 hbonds = [h.strip() for h in hbonds_input.split(",") if h.strip()]
@@ -138,27 +144,6 @@ hbonds = [h.strip() for h in hbonds_input.split(",") if h.strip()]
 if st.button("Search"):
     st.write("Search logic goes here")
 
-
-# ==================================================
-# User inputs
-# ==================================================
-st.subheader("Search criteria")
-
-col1, col2 = st.columns(2)
-
-with col1:
-    bp = st.selectbox(
-        "Select base pair",
-        sorted(df_bp["base_pair"].unique())
-    )
-
-with col2:
-    hbonds_input = st.text_input(
-        "Hydrogen bonds (comma-separated)",
-        placeholder="e.g. O6-N3, N2-O2"
-    )
-
-hbonds = [h.strip() for h in hbonds_input.split(",") if h.strip()]
 
 # ==================================================
 # Run search
