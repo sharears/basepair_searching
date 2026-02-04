@@ -42,11 +42,6 @@ def find_bp_interest(df, bp, hbonds):
     return results
 
 
-import streamlit as st
-import pandas as pd
-import gdown
-import os
-
 # ==================================================
 # STEP 1 — Page setup (ALWAYS first)
 # ==================================================
@@ -79,15 +74,25 @@ def load_data_from_gdrive():
     download_url = f"https://drive.google.com/uc?id={file_id}"
 
     parquet_file = "data.parquet"
-
-    # Download Parquet
     gdown.download(download_url, parquet_file, quiet=True)
 
-    # Read Parquet
     df = pd.read_parquet(parquet_file)
-
-    # Cleanup
     os.remove(parquet_file)
+
+    # 🔥 RECREATE combined_hbond_* columns (CRITICAL)
+    suffix_groups = defaultdict(list)
+    for col in df.columns:
+        suffix = "_".join(col.split("_")[-2:])
+        if suffix.startswith("hbond"):
+            suffix_groups[suffix].append(col)
+
+    for suffix, cols in suffix_groups.items():
+        if len(cols) == 2:
+            atom_col, dist_col = sorted(cols)
+            df[f"combined_{suffix}"] = (
+                df[atom_col].astype(str) + "_" +
+                df[dist_col].astype(str)
+            )
 
     return df
 
