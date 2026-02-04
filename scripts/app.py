@@ -42,9 +42,14 @@ def find_bp_interest(df, bp, hbonds):
     return results
 
 
-# --------------------------------------------------
-# Page setup
-# --------------------------------------------------
+import streamlit as st
+import pandas as pd
+import gdown
+import os
+
+# ==================================================
+# STEP 1 — Page setup (ALWAYS first)
+# ==================================================
 st.set_page_config(
     page_title="RNA Base Pair Hydrogen Bond Explorer",
     layout="wide"
@@ -52,11 +57,21 @@ st.set_page_config(
 
 st.title("RNA Base Pair Hydrogen Bond Explorer")
 
-# --------------------------------------------------
-# Load & preprocess data ONCE (cached)
-# --------------------------------------------------
-@st.cache_data(show_spinner=True)
 
+# ==================================================
+# STEP 2 — Initialize session state (MUST come early)
+# ==================================================
+if "data_loaded" not in st.session_state:
+    st.session_state.data_loaded = False
+
+if "df_bp" not in st.session_state:
+    st.session_state.df_bp = None
+
+
+# ==================================================
+# Data loader (Parquet from Google Drive)
+# ==================================================
+@st.cache_data(show_spinner=True)
 def load_data_from_gdrive():
     url = "https://drive.google.com/file/d/10GN6ldBE19kJd3JpASVfIzH8WpZzNm-T/view?usp=sharing"
 
@@ -68,21 +83,65 @@ def load_data_from_gdrive():
     # Download Parquet
     gdown.download(download_url, parquet_file, quiet=True)
 
-    # Loading as parquet
+    # Read Parquet
     df = pd.read_parquet(parquet_file)
 
+    # Cleanup
     os.remove(parquet_file)
+
     return df
 
 
+# ==================================================
+# STEP 3 — User-triggered heavy action
+# ==================================================
+if st.button("Load database"):
+    with st.spinner("Loading database..."):
+        st.session_state.df_bp = load_data_from_gdrive()
+        st.session_state.data_loaded = True
 
 
-df_bp = load_data_from_gdrive()
+# ==================================================
+# STEP 4 — Guard clause (CRITICAL)
+# ==================================================
+if not st.session_state.data_loaded:
+    st.info("Click **Load database** to start.")
+    st.stop()
+
+
+# ==================================================
+# STEP 5 — Safe zone: use the data
+# ==================================================
+df_bp = st.session_state.df_bp
+
 st.success(f"Database loaded: {len(df_bp):,} base pairs")
 
-# --------------------------------------------------
+
+# ==================================================
+# Everything below here is normal app logic
+# ==================================================
+
+st.subheader("Search criteria")
+
+bp = st.selectbox(
+    "Select base pair",
+    sorted(df_bp["base_pair"].unique())
+)
+
+hbonds_input = st.text_input(
+    "Hydrogen bonds (comma-separated)",
+    placeholder="e.g. O6-N3, N2-O2"
+)
+
+hbonds = [h.strip() for h in hbonds_input.split(",") if h.strip()]
+
+if st.button("Search"):
+    st.write("Search logic goes here")
+
+
+# ==================================================
 # User inputs
-# --------------------------------------------------
+# ==================================================
 st.subheader("Search criteria")
 
 col1, col2 = st.columns(2)
@@ -101,9 +160,9 @@ with col2:
 
 hbonds = [h.strip() for h in hbonds_input.split(",") if h.strip()]
 
-# --------------------------------------------------
+# ==================================================
 # Run search
-# --------------------------------------------------
+# ==================================================
 if st.button("Search"):
     if not hbonds:
         st.warning("Please enter at least one hydrogen bond.")
