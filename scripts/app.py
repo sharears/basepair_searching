@@ -141,8 +141,8 @@ hbonds_input = st.text_input(
 
 hbonds = [h.strip() for h in hbonds_input.split(",") if h.strip()]
 
-if st.button("Search"):
-    st.write("Search logic goes here")
+#if st.button("Search"):
+#    st.write("Search logic goes here")
 
 
 # ==================================================
