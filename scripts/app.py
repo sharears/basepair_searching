@@ -4,6 +4,7 @@ import gdown
 import os
 import numpy as np
 from collections import defaultdict
+import pyarrow.parquet as pq
 
 # --------------------------------------------------
 # Efficient hydrogen-bond matching (vectorized)
@@ -55,38 +56,64 @@ st.title("RNA Base Pair Hydrogen Bond Explorer")
 # Load & preprocess data ONCE (cached)
 # --------------------------------------------------
 @st.cache_data(show_spinner=True)
+@st.cache_data(show_spinner=True)
 def load_data_from_gdrive():
-    #url = "https://drive.google.com/file/d/1aNb12ww1SF3ydfr3vqrdZ7yvpNK82voG/view?usp=drive_link"
+    import pyarrow as pa
+    import pyarrow.parquet as pq
 
-    # Sample file for quick testing
-    url = "https://drive.google.com/file/d/1NWrU7Xu-7K-5wRE1gdIpUIFNe_6jhrRI/view?usp=drive_link"
+    url = "https://drive.google.com/file/d/1aNb12ww1SF3ydfr3vqrdZ7yvpNK82voG/view?usp=drive_link"
 
+    # Extract file ID
     file_id = url.split('/d/')[1].split('/')[0]
     download_url = f"https://drive.google.com/uc?id={file_id}"
 
-    output = "data.csv"
-    gdown.download(download_url, output, quiet=True)
+    csv_file = "data.csv"
+    parquet_file = "data.parquet"
 
-    # Load CSV (avoid dtype warning + extra memory churn)
-    df = pd.read_csv(output, low_memory=False)
-    os.remove(output)
+    # -----------------------------
+    # Download CSV
+    # -----------------------------
+    gdown.download(download_url, csv_file, quiet=True)
 
-    # 🔥 PRECOMPUTE combined_hbond columns ONCE
-    suffix_groups = defaultdict(list)
-    for col in df.columns:
-        suffix = "_".join(col.split("_")[-2:])
-        if suffix.startswith("hbond"):
-            suffix_groups[suffix].append(col)
+    # -----------------------------
+    # Load CSV with pandas
+    # -----------------------------
+    df = pd.read_csv(csv_file, low_memory=False)
 
-    for suffix, cols in suffix_groups.items():
-        if len(cols) == 2:
-            atom_col, dist_col = sorted(cols)
-            df[f"combined_{suffix}"] = (
-                df[atom_col].astype(str) + "_" +
-                df[dist_col].astype(str)
-            )
+    # -----------------------------
+    # 🔥 CRITICAL STEP:
+    # Convert to pure Arrow table
+    # (removes ALL pandas metadata)
+    # -----------------------------
+    table = pa.Table.from_pandas(
+        df,
+        preserve_index=False,   # 🚨 must be False
+        safe=True
+    )
 
-    return df
+    # -----------------------------
+    # Write Parquet WITHOUT pandas metadata
+    # -----------------------------
+    pq.write_table(
+        table,
+        parquet_file,
+        compression="snappy",
+        use_dictionary=False
+    )
+
+    # -----------------------------
+    # Read Parquet back into pandas
+    # -----------------------------
+    df_clean = pd.read_parquet(parquet_file)
+
+    # -----------------------------
+    # Cleanup temp files
+    # -----------------------------
+    os.remove(csv_file)
+    os.remove(parquet_file)
+
+    return df_clean
+
 
 
 df_bp = load_data_from_gdrive()
