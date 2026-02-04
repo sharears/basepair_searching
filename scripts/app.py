@@ -61,7 +61,7 @@ def load_data_from_gdrive():
     import pyarrow as pa
     import pyarrow.parquet as pq
 
-    url = "https://drive.google.com/file/d/1aNb12ww1SF3ydfr3vqrdZ7yvpNK82voG/view?usp=drive_link"
+    url = "https://drive.google.com/file/d/10GN6ldBE19kJd3JpASVfIzH8WpZzNm-T/view?usp=drive_link"
 
     # Extract file ID
     file_id = url.split('/d/')[1].split('/')[0]
