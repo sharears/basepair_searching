@@ -56,10 +56,10 @@ st.title("RNA Base Pair Hydrogen Bond Explorer")
 # --------------------------------------------------
 @st.cache_data(show_spinner=True)
 def load_data_from_gdrive():
-    url = "https://drive.google.com/file/d/1aNb12ww1SF3ydfr3vqrdZ7yvpNK82voG/view?usp=drive_link"
+    #url = "https://drive.google.com/file/d/1aNb12ww1SF3ydfr3vqrdZ7yvpNK82voG/view?usp=drive_link"
 
     # Sample file for quick testing
-    # url = "https://drive.google.com/file/d/1NWrU7Xu-7K-5wRE1gdIpUIFNe_6jhrRI/view?usp=drive_link"
+    url = "https://drive.google.com/file/d/1NWrU7Xu-7K-5wRE1gdIpUIFNe_6jhrRI/view?usp=drive_link"
 
     file_id = url.split('/d/')[1].split('/')[0]
     download_url = f"https://drive.google.com/uc?id={file_id}"
