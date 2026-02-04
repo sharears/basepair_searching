@@ -5,6 +5,21 @@ import os
 import numpy as np
 from collections import defaultdict
 
+# --------------------------------------------------
+# Efficient hydrogen-bond matching (vectorized)
+# --------------------------------------------------
+def has_hbond(df, hbond):
+    variants = [hbond, "-".join(hbond.split("-")[::-1])]
+    mask = False
+
+    for i in range(1, 11):
+        col = f"combined_hbond_{i}"
+        if col in df.columns:
+            for v in variants:
+                mask |= df[col].str.contains(v, na=False)
+
+    return mask
+
 
 def find_bp_interest(df, bp, hbonds):
     # Normalize base pair (GU == UG)
@@ -14,63 +29,17 @@ def find_bp_interest(df, bp, hbonds):
     else:
         bps = [bp]
 
-    df1 = df[df['base_pair'].isin(bps)].copy()
-    df1.index = np.arange(len(df1))
-
-    if df1.empty:
-        return df1
-
-    # Group hbond columns by suffix (e.g., hbond_1)
-    suffix_groups = defaultdict(list)
-    for col in df1.columns:
-        suffix = '_'.join(col.split('_')[-2:])
-        if suffix.startswith('hbond'):
-            suffix_groups[suffix].append(col)
-
-    # Combine atom + distance into combined_hbond_i
-    for suffix, cols in suffix_groups.items():
-        if len(cols) == 2:
-            atom_col, dist_col = sorted(cols)
-            new_col = f'combined_{suffix}'
-            df1[new_col] = (
-                df1[atom_col].astype(str) + "_" +
-                df1[dist_col].astype(str)
-            )
-
-    # Helper: check if a hydrogen bond exists in a row
-    def extract_bp(row, hbond):
-        variants = [hbond, "-".join(hbond.split("-")[::-1])]
-
-        for i in range(1, 11):  # up to 10 hbonds
-            col = f'combined_hbond_{i}'
-            if col in row:
-                val = row[col]
-                if isinstance(val, str):
-                    for v in variants:
-                        if v in val:
-                            try:
-                                return float(val.split('_')[-1])
-                            except ValueError:
-                                return None
-        return None
+    # 🔥 No copy here (saves memory)
+    mask = df["base_pair"].isin(bps)
 
     # Apply hydrogen bond filters
     for hbond in hbonds:
-        df1[hbond] = df1.apply(
-            lambda row: extract_bp(row, hbond), axis=1
-        )
+        mask &= has_hbond(df, hbond)
 
-    # Keep rows containing ALL requested hbonds
-    df2 = df1.dropna(subset=hbonds)
+    results = df[mask]
 
-    # Clean up temporary columns
-    df3 = df2.drop(
-        columns=[c for c in df2.columns if c.startswith("combined_")],
-        errors="ignore"
-    )
-    df3.index = np.arange(len(df3))
+    return results
 
-    return df3
 
 # --------------------------------------------------
 # Page setup
@@ -83,35 +52,44 @@ st.set_page_config(
 st.title("RNA Base Pair Hydrogen Bond Explorer")
 
 # --------------------------------------------------
-# Load data from Google Drive (cached)
+# Load & preprocess data ONCE (cached)
 # --------------------------------------------------
 @st.cache_data(show_spinner=True)
 def load_data_from_gdrive():
     url = "https://drive.google.com/file/d/1aNb12ww1SF3ydfr3vqrdZ7yvpNK82voG/view?usp=drive_link"
 
-    #below is a link to the sample of 200 bps for quick testing
-    #url= 'https://drive.google.com/file/d/1NWrU7Xu-7K-5wRE1gdIpUIFNe_6jhrRI/view?usp=drive_link'
+    # Sample file for quick testing
+    # url = "https://drive.google.com/file/d/1NWrU7Xu-7K-5wRE1gdIpUIFNe_6jhrRI/view?usp=drive_link"
 
-    # Extract file ID
     file_id = url.split('/d/')[1].split('/')[0]
     download_url = f"https://drive.google.com/uc?id={file_id}"
 
     output = "data.csv"
-
-    # Download
     gdown.download(download_url, output, quiet=True)
 
-    # Load CSV
-    df = pd.read_csv(output)
-
-    # Clean up
+    # Load CSV (avoid dtype warning + extra memory churn)
+    df = pd.read_csv(output, low_memory=False)
     os.remove(output)
+
+    # 🔥 PRECOMPUTE combined_hbond columns ONCE
+    suffix_groups = defaultdict(list)
+    for col in df.columns:
+        suffix = "_".join(col.split("_")[-2:])
+        if suffix.startswith("hbond"):
+            suffix_groups[suffix].append(col)
+
+    for suffix, cols in suffix_groups.items():
+        if len(cols) == 2:
+            atom_col, dist_col = sorted(cols)
+            df[f"combined_{suffix}"] = (
+                df[atom_col].astype(str) + "_" +
+                df[dist_col].astype(str)
+            )
 
     return df
 
 
 df_bp = load_data_from_gdrive()
-
 st.success(f"Database loaded: {len(df_bp):,} base pairs")
 
 # --------------------------------------------------
@@ -150,10 +128,14 @@ if st.button("Search"):
         if results.empty:
             st.info("No matching base pairs found.")
         else:
-            st.dataframe(results, use_container_width=True)
+            # 🔥 Do NOT render huge tables
+            st.dataframe(results.head(1000), use_container_width=True)
+            st.caption(
+                f"Showing first 1,000 of {len(results)} matches"
+            )
 
             st.download_button(
-                label="Download results as CSV",
+                label="Download full results as CSV",
                 data=results.to_csv(index=False),
                 file_name="bp_search_results.csv",
                 mime="text/csv"
