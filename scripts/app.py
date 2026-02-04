@@ -58,61 +58,22 @@ st.title("RNA Base Pair Hydrogen Bond Explorer")
 @st.cache_data(show_spinner=True)
 @st.cache_data(show_spinner=True)
 def load_data_from_gdrive():
-    import pyarrow as pa
-    import pyarrow.parquet as pq
-
     url = "https://drive.google.com/file/d/10GN6ldBE19kJd3JpASVfIzH8WpZzNm-T/view?usp=drive_link"
 
-    # Extract file ID
-    file_id = url.split('/d/')[1].split('/')[0]
+    file_id = url.split("/d/")[1].split("/")[0]
     download_url = f"https://drive.google.com/uc?id={file_id}"
 
-    csv_file = "data.csv"
     parquet_file = "data.parquet"
 
-    # -----------------------------
-    # Download CSV
-    # -----------------------------
-    gdown.download(download_url, csv_file, quiet=True)
+    # Download Parquet
+    gdown.download(download_url, parquet_file, quiet=True)
 
-    # -----------------------------
-    # Load CSV with pandas
-    # -----------------------------
-    df = pd.read_csv(csv_file, low_memory=False)
+    # Loading as parquet
+    df = pd.read_parquet(parquet_file)
 
-    # -----------------------------
-    # 🔥 CRITICAL STEP:
-    # Convert to pure Arrow table
-    # (removes ALL pandas metadata)
-    # -----------------------------
-    table = pa.Table.from_pandas(
-        df,
-        preserve_index=False,   # 🚨 must be False
-        safe=True
-    )
-
-    # -----------------------------
-    # Write Parquet WITHOUT pandas metadata
-    # -----------------------------
-    pq.write_table(
-        table,
-        parquet_file,
-        compression="snappy",
-        use_dictionary=False
-    )
-
-    # -----------------------------
-    # Read Parquet back into pandas
-    # -----------------------------
-    df_clean = pd.read_parquet(parquet_file)
-
-    # -----------------------------
-    # Cleanup temp files
-    # -----------------------------
-    os.remove(csv_file)
     os.remove(parquet_file)
+    return df
 
-    return df_clean
 
 
 
