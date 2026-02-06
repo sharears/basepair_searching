@@ -52,23 +52,18 @@ st.set_page_config(
 )
 
 #st.title("RNA Base Pair Hydrogen Bond Explorer")
-col1, col2, col3 = st.columns([1, 3, 1])
-with col2:
-    st.image("assets/weird_bps.svg", width=800)
+container = st.container()
+
+with container:
+    st.image("assets/weird_bps.svg", width=400)
+
     st.markdown(
-    """
-    <div style="
-        font-family: Arial, sans-serif;
-        font-size: 36px;
-        color: orange;
-        text-align: center;
-        margin-top: 6px;
-    ">
-        RNA Base Pair Hydrogen Bond Explorer
-    </div>
-    """,
-    unsafe_allow_html=True
+        "<div style='text-align:center; font-size:20px; color:orange; font-family:Arial;'>"
+        "RNA Base Pair Explorer"
+        "</div>",
+        unsafe_allow_html=True
     )
+
 
 
 # ==================================================
