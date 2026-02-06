@@ -5,6 +5,7 @@ import os
 import numpy as np
 from collections import defaultdict
 import pyarrow.parquet as pq
+from PIL import Image
 
 # --------------------------------------------------
 # Efficient hydrogen-bond matching (vectorized)
@@ -50,7 +51,9 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("RNA Base Pair Hydrogen Bond Explorer")
+#st.title("RNA Base Pair Hydrogen Bond Explorer")
+img = Image.open("assets/weird_bps.png")
+st.image(img, caption="RNA Base Pair Explorer", use_container_width=True)
 
 
 # ==================================================
