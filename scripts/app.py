@@ -153,8 +153,6 @@ def render_basepair_3d(
     )
 
     st.components.v1.html(view._make_html(), height=540)
-st.caption(f"3D selections: sel1={row['chain_ID_res1']}:{row['res_index_res1']} icode={row.get('icode_res1')} | "
-           f"sel2={row['chain_ID_res2']}:{row['res_index_res2']} icode={row.get('icode_res2')}")
 
 
 
