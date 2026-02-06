@@ -85,14 +85,64 @@ def find_bp_interest(df, bp, hbonds):
 # ==================================================
 # 3D structure rendering helper
 # ==================================================
-def render_basepair_3d(pdb_id):
-    import py3Dmol
-    import streamlit as st
+def render_basepair_3d(
+    pdb_id,
+    chain1, resi1, icode1,
+    chain2, resi2, icode2,
+    base1, base2
+):
 
     view = py3Dmol.view(query=f"pdb:{pdb_id.lower()}", width=600, height=500)
     view.setBackgroundColor("white")
-    view.setStyle({}, {"stick": {"radius": 0.25}})
-    view.zoomTo()
+
+    base_colors = {
+        "A": "orange",
+        "G": "green",
+        "C": "cyan",
+        "U": "brown"
+    }
+
+    def make_sel(chain, resi, icode, base):
+        sel = {
+            "chain": str(chain).strip(),
+            "resi": int(float(resi)),
+            "resn": str(base).strip()   # 🔑 CRITICAL FOR RNA
+        }
+        if pd.notna(icode):
+            icode = str(icode).strip()
+            if icode:
+                sel["icode"] = icode
+        return sel
+
+    sel1 = make_sel(chain1, resi1, icode1, base1)
+    sel2 = make_sel(chain2, resi2, icode2, base2)
+
+    # Background faint sticks
+    view.setStyle({}, {"stick": {"radius": 0.1, "color": "lightgray"}})
+
+    # Highlight base pair
+    view.setStyle(
+        sel1,
+        {"stick": {"radius": 0.45, "color": base_colors.get(base1, "orange")}}
+    )
+    view.setStyle(
+        sel2,
+        {"stick": {"radius": 0.45, "color": base_colors.get(base2, "green")}}
+    )
+
+    view.zoomTo({"or": [sel1, sel2]})
+
+    view.addLabel(
+        f"{pdb_id.upper()}  "
+        f"{chain1}:{resi1}{icode1 or ''}{base1} – "
+        f"{chain2}:{resi2}{icode2 or ''}{base2}",
+        {
+            "fontColor": "black",
+            "backgroundColor": "white",
+            "borderColor": "gray",
+            "borderThickness": 1
+        }
+    )
 
     st.components.v1.html(view._make_html(), height=520)
 
@@ -313,12 +363,7 @@ hbonds = [h.strip() for h in hbonds_input.split(",") if h.strip()]
 #if st.button("Search"):
 #    st.write("Search logic goes here")
 
-################test code for 3D rendering
-st.subheader("DEBUG: py3Dmol sanity check")
 
-if st.button("DEBUG: show structure"):
-    render_basepair_3d("1ehz")   # or any known RNA PDB
-################end test code for 3D rendering
 # ==================================================
 # Run search
 # ==================================================
