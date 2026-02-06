@@ -16,13 +16,13 @@ st.markdown(
     <style>
     /* Selected value shown in the selectbox */
     div[data-testid="stSelectbox"] div[role="combobox"] {
-        font-size: 20px !important;
+        font-size: 30px !important;
         font-family: Arial, sans-serif !important;
     }
 
     /* Dropdown menu items */
     div[data-testid="stSelectbox"] ul li {
-        font-size: 20px !important;
+        font-size: 30px !important;
         font-family: Arial, sans-serif !important;
     }
     </style>
