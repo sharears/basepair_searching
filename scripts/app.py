@@ -58,7 +58,7 @@ st.markdown(
     """
     <div style="
         font-family: Arial, sans-serif;
-        font-size: 20px;
+        font-size: 36px;
         color: orange;
         text-align: center;
         margin-top: 6px;
