@@ -92,13 +92,9 @@ def render_basepair_3d(
     base1=None, base2=None
 ):
     view = py3Dmol.view(query=f"pdb:{pdb_id.lower()}")
+    view.setBackgroundColor("white")
 
-    # Clear styles
-    view.setStyle({}, {})
-
-    # Background RNA
-    view.setStyle({}, {"cartoon": {"color": "lightgray", "opacity": 0.4}})
-
+    # --- Base colors ---
     base_colors = {
         "A": "orange",
         "G": "green",
@@ -106,34 +102,39 @@ def render_basepair_3d(
         "U": "brown"
     }
 
-    sel1 = {
-        "chain": chain1,
-        "resi": int(resi1)
-    }
+    # --- Define residue selections ---
+    sel1 = {"chain": chain1, "resi": int(resi1)}
     if icode1:
         sel1["icode"] = str(icode1)
 
-    sel2 = {
-        "chain": chain2,
-        "resi": int(resi2)
-    }
+    sel2 = {"chain": chain2, "resi": int(resi2)}
     if icode2:
         sel2["icode"] = str(icode2)
 
-    # Highlight bases
+    # --- Step 1: render everything faintly ---
+    view.setStyle(
+        {},
+        {"cartoon": {"color": "lightgray", "opacity": 0.25}}
+    )
+
+    # --- Step 2: REMOVE cartoon from base-pair residues ---
+    view.setStyle(sel1, {"cartoon": {}})
+    view.setStyle(sel2, {"cartoon": {}})
+
+    # --- Step 3: show thick sticks (PyMOL-like) ---
     view.setStyle(
         sel1,
-        {"stick": {"color": base_colors.get(base1, "cyan")}}
+        {"stick": {"radius": 0.25, "color": base_colors.get(base1, "orange")}}
     )
     view.setStyle(
         sel2,
-        {"stick": {"color": base_colors.get(base2, "magenta")}}
+        {"stick": {"radius": 0.25, "color": base_colors.get(base2, "green")}}
     )
 
-    # Zoom to base pair
+    # --- Step 4: zoom tightly to the base pair ---
     view.zoomTo({"or": [sel1, sel2]})
 
-    # Label
+    # --- Label ---
     label1 = f"{chain1}:{resi1}{icode1 or ''}"
     label2 = f"{chain2}:{resi2}{icode2 or ''}"
 
@@ -148,6 +149,7 @@ def render_basepair_3d(
     )
 
     st.components.v1.html(view._make_html(), height=520)
+
 
 
 
