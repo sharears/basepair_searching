@@ -14,28 +14,28 @@ import base64
 st.markdown(
     """
     <style>
-    /* -------------------------------
-       Widget labels (e.g. Select base pair)
-       ------------------------------- */
+    /* ----------------------------------
+       Widget labels
+       ---------------------------------- */
     [data-testid="stWidgetLabel"] * {
         font-size: 24px !important;
         font-family: Arial, sans-serif !important;
         font-weight: 600 !important;
     }
 
-    /* -------------------------------
+    /* ----------------------------------
        Selectbox selected value (closed)
-       ------------------------------- */
-    div[data-testid="stSelectbox"] div[role="combobox"] {
+       ---------------------------------- */
+    div[role="combobox"] {
         font-size: 22px !important;
         font-family: Arial, sans-serif !important;
-        line-height: 1.4 !important;
     }
 
-    /* -------------------------------
-       Selectbox dropdown items (open)
-       ------------------------------- */
-    div[data-testid="stSelectbox"] ul li {
+    /* ----------------------------------
+       Selectbox dropdown menu items (OPEN)
+       Streamlit renders this in a portal
+       ---------------------------------- */
+    div[role="listbox"] * {
         font-size: 22px !important;
         font-family: Arial, sans-serif !important;
         line-height: 1.4 !important;
