@@ -46,23 +46,56 @@ def find_bp_interest(df, bp, hbonds):
 # ==================================================
 # STEP 1 — Page setup (ALWAYS first)
 # ==================================================
+import base64
+import streamlit as st
+
 st.set_page_config(
     page_title="RNA Base Pair Hydrogen Bond Explorer",
     layout="wide"
 )
 
-#st.title("RNA Base Pair Hydrogen Bond Explorer")
-container = st.container()
+# ---------- helper: embed SVG safely ----------
+def svg_to_base64(svg_path):
+    with open(svg_path, "rb") as f:
+        return base64.b64encode(f.read()).decode("utf-8")
 
-with container:
-    st.image("assets/weird_bps.svg", width=1000)
 
-    st.markdown(
-        "<div style='text-align:center; font-size:36px; color:orange; font-family:Arial;'>"
-        "RNA Base Pair Explorer"
-        "</div>",
-        unsafe_allow_html=True
-    )
+# ---------- render header (SVG + title locked together) ----------
+svg_b64 = svg_to_base64("assets/weird_bps.svg")
+
+st.markdown(
+    f"""
+    <div style="
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        margin-top: 10px;
+        margin-bottom: 20px;
+    ">
+        <img src="data:image/svg+xml;base64,{svg_b64}"
+             style="
+                width: 1000px;
+                max-width: 95%;
+                height: auto;
+                display: block;
+             " />
+
+        <div style="
+            font-family: Arial, sans-serif;
+            font-size: 36px;
+            color: orange;
+            text-align: center;
+            margin-top: 12px;
+        ">
+            RNA Base Pair Explorer
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 
 
 
