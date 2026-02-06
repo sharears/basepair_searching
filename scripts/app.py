@@ -239,7 +239,7 @@ if "results" not in st.session_state:
 def load_data_from_gdrive():
 
     #test dataset
-    url= 'https://drive.google.com/file/d/1NWrU7Xu-7K-5wRE1gdIpUIFNe_6jhrRI/view?usp=sharing'
+    url= 'https://drive.google.com/file/d/1MH0Xjo8RjJMdIoUbpQlUEWrZfpMeG2yX/view?usp=sharing'
 
     file_id = url.split("/d/")[1].split("/")[0]
     download_url = f"https://drive.google.com/uc?id={file_id}"
