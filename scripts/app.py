@@ -391,10 +391,10 @@ if st.button("Search"):
                 results.index,
                 format_func=lambda i: (
                     f"{results.loc[i, 'PDB_ID']} | "
-                    f"{results.loc[i, 'chain_1']}:{results.loc[i, 'resid_1']} "
-                    f"{results.loc[i, 'base_1']} — "
-                    f"{results.loc[i, 'chain_2']}:{results.loc[i, 'resid_2']} "
-                    f"{results.loc[i, 'base_2']}"
+                    f"{results.loc[i, 'chain_ID_res1']}:{results.loc[i, 'res_index_res1']} "
+                    f"{results.loc[i, 'res_ID_res1']} — "
+                    f"{results.loc[i, 'chain_2']}:{results.loc[i, 'res_index_res2']} "
+                    f"{results.loc[i, 'res_ID_res2']}"
                 ),
                 key="bp_3d_select"
             )
