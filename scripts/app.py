@@ -236,7 +236,20 @@ st.markdown(
 # User inputs
 # ==================================================
 
-st.subheader("Search criteria")
+st.markdown(
+    """
+    <div style="
+        font-family: Arial, sans-serif;
+        font-size: 30px;
+        font-weight: 700;
+        color: #333333;
+        margin-bottom: 12px;
+    ">
+        Search criteria
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 col1, col2 = st.columns([1, 2])
 with col1:
