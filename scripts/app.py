@@ -221,6 +221,9 @@ if "data_loaded" not in st.session_state:
 if "df_bp" not in st.session_state:
     st.session_state.df_bp = None
 
+if "results" not in st.session_state:
+    st.session_state.results = None
+
 
 # ==================================================
 # Data loader (Parquet from Google Drive)
@@ -372,55 +375,58 @@ if st.button("Search"):
         st.warning("Please enter at least one hydrogen bond.")
     else:
         with st.spinner("Searching base-pair database..."):
-            results = find_bp_interest(df_bp, bp, hbonds)
+            st.session_state.results = find_bp_interest(df_bp, bp, hbonds)
 
-        st.markdown(f"### Results ({len(results)} matches)")
+results = st.session_state.results
 
-        if results.empty:
-            st.info("No matching base pairs found.")
-        else:
-            # 🔥 Do NOT render huge tables
-            st.dataframe(results.head(1000), use_container_width=True)
-            # ==================================================
-            # Interactive 3D base-pair viewer
-            # ==================================================
-            st.subheader("Interactive 3D base-pair view")
+if results is not None:
+    st.markdown(f"### Results ({len(results)} matches)")
 
-            selected_idx = st.selectbox(
-                "Select base-pair instance to visualize",
-                results.index,
-                format_func=lambda i: (
-                    f"{results.loc[i, 'PDB_ID']} | "
-                    f"{results.loc[i, 'chain_ID_res1']}:{results.loc[i, 'res_index_res1']} "
-                    f"{results.loc[i, 'res_ID_res1']} — "
-                    f"{results.loc[i, 'chain_ID_res2']}:{results.loc[i, 'res_index_res2']} "
-                    f"{results.loc[i, 'res_ID_res2']}"
-                ),
-                key="bp_3d_select"
+    if results.empty:
+        st.info("No matching base pairs found.")
+    else:
+        st.dataframe(results.head(1000), use_container_width=True)
+
+        # ==================================================
+        # Interactive 3D base-pair viewer
+        # ==================================================
+        st.subheader("Interactive 3D base-pair view")
+
+        selected_idx = st.selectbox(
+            "Select base-pair instance to visualize",
+            results.index,
+            format_func=lambda i: (
+                f"{results.loc[i, 'PDB_ID']} | "
+                f"{results.loc[i, 'chain_ID_res1']}:{results.loc[i, 'res_index_res1']} "
+                f"{results.loc[i, 'res_ID_res1']} — "
+                f"{results.loc[i, 'chain_ID_res2']}:{results.loc[i, 'res_index_res2']} "
+                f"{results.loc[i, 'res_ID_res2']}"
+            ),
+            key="bp_3d_select"
+        )
+
+        if st.button("Show 3D structure", key="show_3d"):
+            row = results.loc[selected_idx]
+
+            render_basepair_3d(
+                pdb_id=row["PDB_ID"],
+                chain1=row["chain_ID_res1"],
+                resi1=row["res_index_res1"],
+                icode1=row.get("icode_res1"),
+                chain2=row["chain_ID_res2"],
+                resi2=row["res_index_res2"],
+                icode2=row.get("icode_res2"),
+                base1=row["res_ID_res1"],
+                base2=row["res_ID_res2"]
             )
-            if st.button("Show 3D structure", key="show_3d"):
-                row = results.loc[selected_idx]
-                render_basepair_3d(
-                    pdb_id=row["PDB_ID"],
-                    chain1=row["chain_ID_res1"],
-                    resi1=row["res_index_res1"],
-                    icode1=row.get("icode_res1"),
-                    chain2=row["chain_ID_res2"],
-                    resi2=row["res_index_res2"],
-                    icode2=row.get("icode_res2"),
-                    base1=row["res_ID_res1"],
-                    base2=row["res_ID_res2"]
-                )
 
+        st.caption(f"Showing first 1,000 of {len(results)} matches")
 
-            st.caption(
-                f"Showing first 1,000 of {len(results)} matches"
-            )
+        st.download_button(
+            label="Download full results as CSV",
+            data=results.to_csv(index=False),
+            file_name="bp_search_results.csv",
+            mime="text/csv"
+        )
 
-            st.download_button(
-                label="Download full results as CSV",
-                data=results.to_csv(index=False),
-                file_name="bp_search_results.csv",
-                mime="text/csv"
-            )
 
