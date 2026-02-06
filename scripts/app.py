@@ -210,17 +210,20 @@ st.markdown(
 
 st.subheader("Search criteria")
 
-bp = st.selectbox(
-    "Select base pair",
-    sorted(df_bp["base_pair"].unique()),
-    key="bp_select"
-)
+col1, col2 = st.columns([1, 2])
+with col1:
+    bp = st.selectbox(
+        "Select base pair",
+        sorted(df_bp["base_pair"].unique()),
+        key="bp_select"
+    )
 
-hbonds_input = st.text_input(
-    "Hydrogen bonds (comma-separated)",
-    placeholder="e.g. O6-N3, N2-O2",
-    key="hbonds_input"
-)
+with col2:
+    hbonds_input = st.text_input(
+        "Hydrogen bonds (comma-separated)",
+        placeholder="e.g. O6-N3, N2-O2",
+        key="hbonds_input"
+    )
 
 hbonds = [h.strip() for h in hbonds_input.split(",") if h.strip()]
 
