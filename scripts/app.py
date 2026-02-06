@@ -85,81 +85,17 @@ def find_bp_interest(df, bp, hbonds):
 # ==================================================
 # 3D structure rendering helper
 # ==================================================
-def render_basepair_3d(
-    pdb_id,
-    chain1, resi1, icode1,
-    chain2, resi2, icode2,
-    base1=None, base2=None
-):
-    import py3Dmol
-    import streamlit as st
+def render_basepair_3d(*args, **kwargs):
 
-    view = py3Dmol.view(query=f"pdb:{pdb_id.lower()}", width=600, height=500)
+    view = py3Dmol.view(query=f"pdb:{args[0].lower()}")
     view.setBackgroundColor("white")
 
-    # Base colors (PyMOL-like)
-    base_colors = {
-        "A": "orange",
-        "G": "green",
-        "C": "cyan",
-        "U": "brown"
-    }
-
-    # ---- Build selections safely ----
-    def make_sel(chain, resi, icode):
-        sel = {
-            "chain": str(chain),
-            "resi": int(resi),
-            "elem": ["C", "N", "O", "P"]
-        }
-        if icode not in [None, "", " "]:
-            sel["icode"] = str(icode)
-        return sel
-
-    sel1 = make_sel(chain1, resi1, icode1)
-    sel2 = make_sel(chain2, resi2, icode2)
-
-    # ---- Clear everything ----
-    view.setStyle({}, {})
-
-    # ---- Optional faint background (comment out to hide all else) ----
-    view.setStyle(
-        {},
-        {"cartoon": {"color": "lightgray", "opacity": 0.15}}
-    )
-
-    # ---- Remove cartoon from base-pair residues ----
-    view.setStyle(sel1, {"cartoon": {}})
-    view.setStyle(sel2, {"cartoon": {}})
-
-    # ---- Thick sticks (PyMOL-like) ----
-    view.setStyle(
-        sel1,
-        {"stick": {"radius": 0.35, "color": base_colors.get(base1, "orange")}}
-    )
-    view.setStyle(
-        sel2,
-        {"stick": {"radius": 0.35, "color": base_colors.get(base2, "green")}}
-    )
-
-    # ---- Tight zoom ----
-    view.zoomTo({"or": [sel1, sel2]})
-
-    # ---- Label ----
-    label1 = f"{chain1}:{resi1}{icode1 or ''}"
-    label2 = f"{chain2}:{resi2}{icode2 or ''}"
-
-    view.addLabel(
-        f"{pdb_id.upper()}  {label1} – {label2}",
-        {
-            "fontColor": "black",
-            "backgroundColor": "white",
-            "borderColor": "gray",
-            "borderThickness": 1
-        }
-    )
+    # Show EVERYTHING as sticks (no selection)
+    view.setStyle({}, {"stick": {"radius": 0.2}})
+    view.zoomTo()
 
     st.components.v1.html(view._make_html(), height=520)
+
 
 # ==================================================
 # STEP 1 — Page setup (ALWAYS first)
