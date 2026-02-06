@@ -91,6 +91,9 @@ def render_basepair_3d(
     chain2, resi2, icode2,
     base1=None, base2=None
 ):
+    import py3Dmol
+    import streamlit as st
+    import pandas as pd
 
     view = py3Dmol.view(query=f"pdb:{pdb_id.lower()}", width=600, height=500)
     view.setBackgroundColor("white")
@@ -104,9 +107,8 @@ def render_basepair_3d(
 
     def make_sel(chain, resi, icode):
         sel = {
-            "model": 0,                    # 🔑 CRITICAL
             "chain": str(chain).strip(),
-            "resi": int(resi)
+            "resi": int(float(resi))  # handles 45 / 45.0 / "45"
         }
         if pd.notna(icode):
             icode = str(icode).strip()
@@ -117,14 +119,14 @@ def render_basepair_3d(
     sel1 = make_sel(chain1, resi1, icode1)
     sel2 = make_sel(chain2, resi2, icode2)
 
-    # Show whole structure faintly
+    # Background faint cartoon
     view.setStyle({}, {"cartoon": {"color": "lightgray", "opacity": 0.25}})
 
-    # Remove cartoon for residues of interest
+    # Remove cartoon for selected residues
     view.setStyle(sel1, {"cartoon": {}})
     view.setStyle(sel2, {"cartoon": {}})
 
-    # Show thick sticks (PyMOL-like)
+    # Thick sticks (PyMOL-like)
     view.setStyle(
         sel1,
         {"stick": {"radius": 0.35, "color": base_colors.get(base1, "orange")}}
@@ -150,54 +152,6 @@ def render_basepair_3d(
 
     st.components.v1.html(view._make_html(), height=520)
 
-
-    sel1 = make_sel(chain1, resi1, icode1)
-    sel2 = make_sel(chain2, resi2, icode2)
-    if sel1 is None or sel2 is None:
-        st.error("Invalid residue selection — cannot render 3D view.")
-        return
-
-    # ---- Clear everything ----
-    view.setStyle({}, {})
-
-    # ---- Optional faint background (comment out to hide all else) ----
-    view.setStyle(
-        {},
-        {"cartoon": {"color": "lightgray", "opacity": 0.8}}
-    )
-
-    # ---- Remove cartoon from base-pair residues ----
-    view.setStyle(sel1, {"cartoon": {}})
-    view.setStyle(sel2, {"cartoon": {}})
-
-    # ---- Thick sticks (PyMOL-like) ----
-    view.setStyle(
-        sel1,
-        {"stick": {"radius": 0.35, "color": base_colors.get(base1, "orange")}}
-    )
-    view.setStyle(
-        sel2,
-        {"stick": {"radius": 0.35, "color": base_colors.get(base2, "green")}}
-    )
-
-    # ---- Tight zoom ----
-    view.zoomTo({"or": [sel1, sel2]})
-
-    # ---- Label ----
-    label1 = f"{chain1}:{resi1}{icode1 or ''}"
-    label2 = f"{chain2}:{resi2}{icode2 or ''}"
-
-    view.addLabel(
-        f"{pdb_id.upper()}  {label1} – {label2}",
-        {
-            "fontColor": "black",
-            "backgroundColor": "white",
-            "borderColor": "gray",
-            "borderThickness": 1
-        }
-    )
-
-    st.components.v1.html(view._make_html(), height=520)
 
 # ==================================================
 # STEP 1 — Page setup (ALWAYS first)
