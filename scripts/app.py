@@ -9,26 +9,42 @@ from PIL import Image
 import base64
 
 # --------------------------------------------------
-# Global CSS
+# Global CSS (labels + selectbox text)
 # --------------------------------------------------
 st.markdown(
     """
     <style>
-    /* Selected value shown in the selectbox */
-    div[data-testid="stSelectbox"] div[role="combobox"] {
-        font-size: 30px !important;
+    /* -------------------------------
+       Widget labels (e.g. Select base pair)
+       ------------------------------- */
+    [data-testid="stWidgetLabel"] * {
+        font-size: 24px !important;
         font-family: Arial, sans-serif !important;
+        font-weight: 600 !important;
     }
 
-    /* Dropdown menu items */
-    div[data-testid="stSelectbox"] ul li {
-        font-size: 30px !important;
+    /* -------------------------------
+       Selectbox selected value (closed)
+       ------------------------------- */
+    div[data-testid="stSelectbox"] div[role="combobox"] {
+        font-size: 22px !important;
         font-family: Arial, sans-serif !important;
+        line-height: 1.4 !important;
+    }
+
+    /* -------------------------------
+       Selectbox dropdown items (open)
+       ------------------------------- */
+    div[data-testid="stSelectbox"] ul li {
+        font-size: 22px !important;
+        font-family: Arial, sans-serif !important;
+        line-height: 1.4 !important;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
+
 
 
 # --------------------------------------------------
