@@ -85,16 +85,17 @@ def find_bp_interest(df, bp, hbonds):
 # ==================================================
 # 3D structure rendering helper
 # ==================================================
-def render_basepair_3d(*args, **kwargs):
+def render_basepair_3d(pdb_id, *args, **kwargs):
 
-    view = py3Dmol.view(query=f"pdb:{args[0].lower()}")
+    view = py3Dmol.view(query=f"pdb:{str(pdb_id).lower()}")
     view.setBackgroundColor("white")
 
     # Show EVERYTHING as sticks (no selection)
-    view.setStyle({}, {"stick": {"radius": 0.2}})
+    view.setStyle({}, {"stick": {"radius": 0.25}})
     view.zoomTo()
 
     st.components.v1.html(view._make_html(), height=520)
+
 
 
 # ==================================================
