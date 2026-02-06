@@ -55,10 +55,10 @@ st.set_page_config(
 container = st.container()
 
 with container:
-    st.image("assets/weird_bps.svg", width=400)
+    st.image("assets/weird_bps.svg", width=1000)
 
     st.markdown(
-        "<div style='text-align:center; font-size:20px; color:orange; font-family:Arial;'>"
+        "<div style='text-align:center; font-size:36px; color:orange; font-family:Arial;'>"
         "RNA Base Pair Explorer"
         "</div>",
         unsafe_allow_html=True
