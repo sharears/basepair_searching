@@ -7,6 +7,7 @@ from collections import defaultdict
 import pyarrow.parquet as pq
 from PIL import Image
 import base64
+import py3Dmol
 
 # --------------------------------------------------
 # Global CSS (labels + selectbox text)
@@ -81,6 +82,75 @@ def find_bp_interest(df, bp, hbonds):
     results = df[mask]
 
     return results
+# ==================================================
+# 3D structure rendering helper
+# ==================================================
+def render_basepair_3d(
+    pdb_id,
+    chain1, resi1, icode1,
+    chain2, resi2, icode2,
+    base1=None, base2=None
+):
+    view = py3Dmol.view(query=f"pdb:{pdb_id.lower()}")
+
+    # Clear styles
+    view.setStyle({}, {})
+
+    # Background RNA
+    view.setStyle({}, {"cartoon": {"color": "lightgray", "opacity": 0.4}})
+
+    base_colors = {
+        "A": "orange",
+        "G": "green",
+        "C": "cyan",
+        "U": "brown"
+    }
+
+    sel1 = {
+        "chain": chain1,
+        "resi": int(resi1)
+    }
+    if icode1:
+        sel1["icode"] = str(icode1)
+
+    sel2 = {
+        "chain": chain2,
+        "resi": int(resi2)
+    }
+    if icode2:
+        sel2["icode"] = str(icode2)
+
+    # Highlight bases
+    view.setStyle(
+        sel1,
+        {"stick": {"color": base_colors.get(base1, "cyan")}}
+    )
+    view.setStyle(
+        sel2,
+        {"stick": {"color": base_colors.get(base2, "magenta")}}
+    )
+
+    # Zoom to base pair
+    view.zoomTo({"or": [sel1, sel2]})
+
+    # Label
+    label1 = f"{chain1}:{resi1}{icode1 or ''}"
+    label2 = f"{chain2}:{resi2}{icode2 or ''}"
+
+    view.addLabel(
+        f"{pdb_id.upper()}  {label1} – {label2}",
+        {
+            "fontColor": "black",
+            "backgroundColor": "white",
+            "borderColor": "gray",
+            "borderThickness": 1
+        }
+    )
+
+    st.components.v1.html(view._make_html(), height=520)
+
+
+
 
 
 # ==================================================
@@ -311,6 +381,38 @@ if st.button("Search"):
         else:
             # 🔥 Do NOT render huge tables
             st.dataframe(results.head(1000), use_container_width=True)
+            # ==================================================
+            # Interactive 3D base-pair viewer
+            # ==================================================
+            st.subheader("Interactive 3D base-pair view")
+
+            selected_idx = st.selectbox(
+                "Select base-pair instance to visualize",
+                results.index,
+                format_func=lambda i: (
+                    f"{results.loc[i, 'PDB_ID']} | "
+                    f"{results.loc[i, 'chain_1']}:{results.loc[i, 'resid_1']} "
+                    f"{results.loc[i, 'base_1']} — "
+                    f"{results.loc[i, 'chain_2']}:{results.loc[i, 'resid_2']} "
+                    f"{results.loc[i, 'base_2']}"
+                ),
+                key="bp_3d_select"
+            )
+            if st.button("Show 3D structure", key="show_3d"):
+                row = results.loc[selected_idx]
+                render_basepair_3d(
+                    pdb_id=row["PDB_ID"],
+                    chain1=row["chain_ID_res1"],
+                    resi1=row["res_index_res1"],
+                    icode1=row.get("icode_res1"),
+                    chain2=row["chain_ID_res2"],
+                    resi2=row["res_index_res2"],
+                    icode2=row.get("icode_res2"),
+                    base1=row["res_ID_res1"],
+                    base2=row["res_ID_res2"]
+                )
+
+
             st.caption(
                 f"Showing first 1,000 of {len(results)} matches"
             )
@@ -321,3 +423,4 @@ if st.button("Search"):
                 file_name="bp_search_results.csv",
                 mime="text/csv"
             )
+
