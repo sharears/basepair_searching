@@ -206,9 +206,10 @@ st.markdown(
 st.markdown(
     """
     <style>
-    /* Increase font size of selectbox and text_input labels */
-    label {
-        font-size: 20px !important;
+    /* Increase font size of selectbox & text_input labels */
+    div[data-testid="stSelectbox"] label,
+    div[data-testid="stTextInput"] label {
+        font-size: 24px !important;
         font-family: Arial, sans-serif;
         font-weight: 600;
     }
