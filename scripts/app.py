@@ -259,6 +259,30 @@ with col1:
         key="bp_select"
     )
 
+# Color mapping
+base_colors = {
+    "A": "#FFBF00",  # Amber
+    "G": "green",
+    "C": "cyan",
+    "U": "#635147"   # Umber
+}
+
+# Render colored base pair
+colored_bp = "".join(
+    f"<span style='color:{base_colors.get(b, 'black')}; font-weight:700;'>{b}</span>"
+    if b in base_colors else f"<span>{b}</span>"
+    for b in bp
+)
+
+st.markdown(
+    f"""
+    <div style="font-size:24px; font-family:Arial; margin-top:6px;">
+        Selected base pair: {colored_bp}
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 with col2:
     hbonds_input = st.text_input(
         "Hydrogen bonds (comma-separated)",
