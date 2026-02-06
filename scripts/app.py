@@ -106,17 +106,34 @@ def render_basepair_3d(
 
     # ---- Build selections safely ----
     def make_sel(chain, resi, icode):
+        # --- Normalize chain ---
+        chain = str(chain).strip()
+
+        # --- Normalize residue number ---
+        try:
+            resi = int(float(resi))  # handles "45", "45.0", 45.0
+        except Exception:
+            return None  # invalid residue
+
         sel = {
-            "chain": str(chain),
-            "resi": int(resi),
+            "chain": chain,
+            "resi": resi,
             "elem": ["C", "N", "O", "P"]
         }
-        if icode not in [None, "", " "]:
-            sel["icode"] = str(icode)
+
+        # --- Normalize insertion code ---
+        if pd.notna(icode):
+            icode = str(icode).strip()
+            if icode and icode.lower() != "nan":
+                sel["icode"] = icode
+
         return sel
 
     sel1 = make_sel(chain1, resi1, icode1)
     sel2 = make_sel(chain2, resi2, icode2)
+    if sel1 is None or sel2 is None:
+        st.error("Invalid residue selection — cannot render 3D view.")
+        return
 
     # ---- Clear everything ----
     view.setStyle({}, {})
