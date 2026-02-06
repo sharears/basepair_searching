@@ -242,7 +242,7 @@ st.markdown(
         font-family: Arial, sans-serif;
         font-size: 30px;
         font-weight: 700;
-        color: #333333;
+        color: white;
         margin-bottom: 12px;
     ">
         Search criteria
