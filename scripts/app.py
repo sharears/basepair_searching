@@ -55,7 +55,7 @@ st.set_page_config(
 col1, col2, col3 = st.columns([1, 3, 1])
 with col2:
     st.image("assets/weird_bps.svg", width=800)
-st.markdown(
+    st.markdown(
     """
     <div style="
         font-family: Arial, sans-serif;
@@ -68,7 +68,7 @@ st.markdown(
     </div>
     """,
     unsafe_allow_html=True
-)
+    )
 
 
 # ==================================================
