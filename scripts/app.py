@@ -89,62 +89,73 @@ def render_basepair_3d(
     pdb_id,
     chain1, resi1, icode1,
     chain2, resi2, icode2,
-    base1, base2
+    base1=None, base2=None
 ):
+    import py3Dmol
+    import streamlit as st
+    import pandas as pd
 
-    view = py3Dmol.view(query=f"pdb:{pdb_id.lower()}", width=600, height=500)
+    view = py3Dmol.view(query=f"pdb:{str(pdb_id).lower()}", width=700, height=520)
     view.setBackgroundColor("white")
 
-    base_colors = {
-        "A": "orange",
-        "G": "green",
-        "C": "cyan",
-        "U": "brown"
-    }
+    base_colors = {"A": "orange", "G": "green", "C": "cyan", "U": "brown"}
 
-    def make_sel(chain, resi, icode, base):
-        sel = {
-            "chain": str(chain).strip(),
-            "resi": int(float(resi)),
-            "resn": str(base).strip()   # 🔑 CRITICAL FOR RNA
-        }
-        if pd.notna(icode):
-            icode = str(icode).strip()
-            if icode:
-                sel["icode"] = icode
+    def norm_chain(x):
+        return str(x).strip()
+
+    def norm_resi(x):
+        # handles 45, 45.0, "45", "45.0"
+        return int(float(x))
+
+    def norm_icode(x):
+        if x is None or (isinstance(x, float) and pd.isna(x)):
+            return None
+        s = str(x).strip()
+        if not s or s.lower() == "nan":
+            return None
+        return s
+
+    def make_sel(chain, resi, icode):
+        sel = {"chain": norm_chain(chain), "resi": norm_resi(resi)}
+        ic = norm_icode(icode)
+        if ic:
+            sel["icode"] = ic
         return sel
 
-    sel1 = make_sel(chain1, resi1, icode1, base1)
-    sel2 = make_sel(chain2, resi2, icode2, base2)
+    sel1 = make_sel(chain1, resi1, icode1)
+    sel2 = make_sel(chain2, resi2, icode2)
 
-    # Background faint sticks
-    view.setStyle({}, {"stick": {"radius": 0.1, "color": "lightgray"}})
+    # 1) ALWAYS show the whole structure so the view is never blank
+    view.setStyle({}, {"stick": {"radius": 0.12, "color": "lightgray"}})
 
-    # Highlight base pair
+    # 2) Zoom to whole structure first (critical)
+    view.zoomTo()
+
+    # 3) Try highlighting the two residues (do NOT constrain by resn)
     view.setStyle(
         sel1,
-        {"stick": {"radius": 0.45, "color": base_colors.get(base1, "orange")}}
+        {"stick": {"radius": 0.45, "color": base_colors.get(str(base1).strip(), "orange")}}
     )
     view.setStyle(
         sel2,
-        {"stick": {"radius": 0.45, "color": base_colors.get(base2, "green")}}
+        {"stick": {"radius": 0.45, "color": base_colors.get(str(base2).strip(), "green")}}
     )
 
+    # 4) Try zooming to the pair (but keep the full zoom already done)
     view.zoomTo({"or": [sel1, sel2]})
 
+    # Label
+    label1 = f"{norm_chain(chain1)}:{norm_resi(resi1)}{norm_icode(icode1) or ''}"
+    label2 = f"{norm_chain(chain2)}:{norm_resi(resi2)}{norm_icode(icode2) or ''}"
     view.addLabel(
-        f"{pdb_id.upper()}  "
-        f"{chain1}:{resi1}{icode1 or ''}{base1} – "
-        f"{chain2}:{resi2}{icode2 or ''}{base2}",
-        {
-            "fontColor": "black",
-            "backgroundColor": "white",
-            "borderColor": "gray",
-            "borderThickness": 1
-        }
+        f"{str(pdb_id).upper()}  {label1} – {label2}",
+        {"fontColor": "black", "backgroundColor": "white", "borderColor": "gray", "borderThickness": 1}
     )
 
-    st.components.v1.html(view._make_html(), height=520)
+    st.components.v1.html(view._make_html(), height=540)
+st.caption(f"3D selections: sel1={row['chain_ID_res1']}:{row['res_index_res1']} icode={row.get('icode_res1')} | "
+           f"sel2={row['chain_ID_res2']}:{row['res_index_res2']} icode={row.get('icode_res2')}")
+
 
 
 
@@ -404,6 +415,9 @@ if results is not None:
 
         if st.button("Show 3D structure", key="show_3d"):
             row = results.loc[selected_idx]
+            st.caption(f"3D selections: sel1={row['chain_ID_res1']}:{row['res_index_res1']} icode={row.get('icode_res1')} | "
+            f"sel2={row['chain_ID_res2']}:{row['res_index_res2']} icode={row.get('icode_res2')}")
+
 
             render_basepair_3d(
                 pdb_id=row["PDB_ID"],
