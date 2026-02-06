@@ -91,9 +91,6 @@ def render_basepair_3d(
     chain2, resi2, icode2,
     base1=None, base2=None
 ):
-    import py3Dmol
-    import streamlit as st
-    import pandas as pd
 
     view = py3Dmol.view(query=f"pdb:{str(pdb_id).lower()}", width=700, height=520)
     view.setBackgroundColor("white")
@@ -134,11 +131,11 @@ def render_basepair_3d(
     # 3) Try highlighting the two residues (do NOT constrain by resn)
     view.setStyle(
         sel1,
-        {"stick": {"radius": 0.45, "color": base_colors.get(str(base1).strip(), "orange")}}
+        {"stick": {"radius": 0.30, "color": base_colors.get(str(base1).strip(), "orange")}}
     )
     view.setStyle(
         sel2,
-        {"stick": {"radius": 0.45, "color": base_colors.get(str(base2).strip(), "green")}}
+        {"stick": {"radius": 0.30, "color": base_colors.get(str(base2).strip(), "green")}}
     )
 
     # 4) Try zooming to the pair (but keep the full zoom already done)
