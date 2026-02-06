@@ -237,7 +237,9 @@ if "results" not in st.session_state:
 # ==================================================
 @st.cache_data(show_spinner=True)
 def load_data_from_gdrive():
-    url = "https://drive.google.com/file/d/1P1G0HMJnIOmg2ElosOEXtAlsPPGL8Rf0/view?usp=sharing"
+
+    #test dataset
+    url= 'https://drive.google.com/file/d/1NWrU7Xu-7K-5wRE1gdIpUIFNe_6jhrRI/view?usp=sharing'
 
     file_id = url.split("/d/")[1].split("/")[0]
     download_url = f"https://drive.google.com/uc?id={file_id}"
