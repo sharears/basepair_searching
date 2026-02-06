@@ -61,6 +61,18 @@ def svg_to_base64(svg_path):
 
 
 # ---------- render header (SVG + title locked together) ----------
+import base64
+import streamlit as st
+
+st.set_page_config(
+    page_title="RNA Base Pair Hydrogen Bond Explorer",
+    layout="wide"
+)
+
+def svg_to_base64(svg_path):
+    with open(svg_path, "rb") as f:
+        return base64.b64encode(f.read()).decode("utf-8")
+
 svg_b64 = svg_to_base64("assets/weird_bps.svg")
 
 st.markdown(
@@ -95,6 +107,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
