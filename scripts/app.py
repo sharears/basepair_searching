@@ -172,7 +172,11 @@ if not st.session_state.data_loaded:
 # ==================================================
 df_bp = st.session_state.df_bp
 
-st.success(f"Database loaded: {len(df_bp):,} base pairs")
+st.success(
+    f"Database loaded: {df_bp['pdb_id'].nunique():,} unique structures "
+    f"({len(df_bp):,} base pairs)"
+)
+
 
 
 # ==================================================
