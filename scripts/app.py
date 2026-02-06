@@ -75,34 +75,28 @@ def svg_to_base64(svg_path):
 
 svg_b64 = svg_to_base64("assets/weird_bps.svg")
 
+# --- SVG (base64) ---
 st.markdown(
     f"""
-    <div style="
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        margin-top: 10px;
-        margin-bottom: 20px;
-    ">
+    <div style="display:flex; justify-content:center;">
         <img src="data:image/svg+xml;base64,{svg_b64}"
-             style="
-                width: 1000px;
-                max-width: 95%;
-                height: auto;
-                display: block;
-             " />
+             style="width:1000px; max-width:95%;">
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
-        <div style="
-            font-family: Arial, sans-serif;
-            font-size: 36px;
-            color: orange;
-            text-align: center;
-            margin-top: 12px;
-        ">
-            RNA Base Pair Explorer
-        </div>
+# --- Title ---
+st.markdown(
+    """
+    <div style="
+        font-family: Arial, sans-serif;
+        font-size: 36px;
+        color: orange;
+        text-align: center;
+        margin-top: 12px;
+    ">
+        RNA Base Pair Explorer
     </div>
     """,
     unsafe_allow_html=True
