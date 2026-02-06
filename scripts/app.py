@@ -9,6 +9,24 @@ from PIL import Image
 import base64
 
 # --------------------------------------------------
+# Global CSS
+# --------------------------------------------------
+st.markdown(
+    """
+    <style>
+    /* Force larger font for ALL Streamlit widget labels */
+    [data-testid="stWidgetLabel"] * {
+        font-size: 24px !important;
+        font-family: Arial, sans-serif !important;
+        font-weight: 600 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# --------------------------------------------------
 # Efficient hydrogen-bond matching (vectorized)
 # --------------------------------------------------
 def has_hbond(df, hbond):
