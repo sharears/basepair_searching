@@ -172,10 +172,31 @@ if not st.session_state.data_loaded:
 # ==================================================
 df_bp = st.session_state.df_bp
 
-st.success(
-    f"Database loaded: {df_bp['PDB_ID'].nunique():,} unique structures "
-    f"({len(df_bp):,} base pairs)"
+#st.success(
+#    f"Database loaded: {df_bp['PDB_ID'].nunique():,} unique structures "
+#    f"({len(df_bp):,} base pairs)"
+#)
+
+st.markdown(
+    f"""
+    <div style="
+        background-color: #e6f4ea;
+        border-left: 6px solid #2e7d32;
+        padding: 14px 18px;
+        border-radius: 6px;
+        font-family: Arial, sans-serif;
+        font-size: 22px;
+        color: #1b5e20;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    ">
+        <b>Database loaded:</b> {df_bp['PDB_ID'].nunique():,} unique structures
+        ({len(df_bp):,} base pairs)
+    </div>
+    """,
+    unsafe_allow_html=True
 )
+
 
 
 
