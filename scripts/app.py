@@ -208,7 +208,7 @@ st.markdown(
     <style>
     /* Increase font size of widget labels */
     span[data-testid="stWidgetLabel"] {
-        font-size: 22px !important;
+        font-size: 30px !important;
         font-family: Arial, sans-serif !important;
         font-weight: 600;
     }
