@@ -203,7 +203,19 @@ st.markdown(
 # ==================================================
 # Everything below here is normal app logic
 # ==================================================
-
+st.markdown(
+    """
+    <style>
+    /* Increase font size of selectbox and text_input labels */
+    label {
+        font-size: 20px !important;
+        font-family: Arial, sans-serif;
+        font-weight: 600;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 # ==================================================
 # User inputs
 # ==================================================
