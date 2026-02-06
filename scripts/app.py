@@ -14,11 +14,16 @@ import base64
 st.markdown(
     """
     <style>
-    /* Force larger font for ALL Streamlit widget labels */
-    [data-testid="stWidgetLabel"] * {
-        font-size: 24px !important;
+    /* Selected value shown in the selectbox */
+    div[data-testid="stSelectbox"] div[role="combobox"] {
+        font-size: 20px !important;
         font-family: Arial, sans-serif !important;
-        font-weight: 600 !important;
+    }
+
+    /* Dropdown menu items */
+    div[data-testid="stSelectbox"] ul li {
+        font-size: 20px !important;
+        font-family: Arial, sans-serif !important;
     }
     </style>
     """,
