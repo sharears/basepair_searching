@@ -68,7 +68,7 @@ if "df_bp" not in st.session_state:
 # ==================================================
 @st.cache_data(show_spinner=True)
 def load_data_from_gdrive():
-    url = "https://drive.google.com/file/d/10GN6ldBE19kJd3JpASVfIzH8WpZzNm-T/view?usp=sharing"
+    url = "https://drive.google.com/file/d/1P1G0HMJnIOmg2ElosOEXtAlsPPGL8Rf0/view?usp=sharing"
 
     file_id = url.split("/d/")[1].split("/")[0]
     download_url = f"https://drive.google.com/uc?id={file_id}"
