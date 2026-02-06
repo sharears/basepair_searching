@@ -52,8 +52,7 @@ st.set_page_config(
 )
 
 #st.title("RNA Base Pair Hydrogen Bond Explorer")
-img = Image.open("assets/weird_bps.svg")
-st.image(img, width=200)
+st.image("assets/weird_bps.svg", width=200)
 st.markdown(
     """
     <div style="
