@@ -91,10 +91,13 @@ def render_basepair_3d(
     chain2, resi2, icode2,
     base1=None, base2=None
 ):
-    view = py3Dmol.view(query=f"pdb:{pdb_id.lower()}")
+    import py3Dmol
+    import streamlit as st
+
+    view = py3Dmol.view(query=f"pdb:{pdb_id.lower()}", width=600, height=500)
     view.setBackgroundColor("white")
 
-    # --- Base colors ---
+    # Base colors (PyMOL-like)
     base_colors = {
         "A": "orange",
         "G": "green",
@@ -102,39 +105,47 @@ def render_basepair_3d(
         "U": "brown"
     }
 
-    # --- Define residue selections ---
-    sel1 = {"chain": chain1, "resi": int(resi1)}
-    if icode1:
-        sel1["icode"] = str(icode1)
+    # ---- Build selections safely ----
+    def make_sel(chain, resi, icode):
+        sel = {
+            "chain": str(chain),
+            "resi": int(resi),
+            "elem": ["C", "N", "O", "P"]
+        }
+        if icode not in [None, "", " "]:
+            sel["icode"] = str(icode)
+        return sel
 
-    sel2 = {"chain": chain2, "resi": int(resi2)}
-    if icode2:
-        sel2["icode"] = str(icode2)
+    sel1 = make_sel(chain1, resi1, icode1)
+    sel2 = make_sel(chain2, resi2, icode2)
 
-    # --- Step 1: render everything faintly ---
+    # ---- Clear everything ----
+    view.setStyle({}, {})
+
+    # ---- Optional faint background (comment out to hide all else) ----
     view.setStyle(
         {},
-        {"cartoon": {"color": "lightgray", "opacity": 0.25}}
+        {"cartoon": {"color": "lightgray", "opacity": 0.15}}
     )
 
-    # --- Step 2: REMOVE cartoon from base-pair residues ---
+    # ---- Remove cartoon from base-pair residues ----
     view.setStyle(sel1, {"cartoon": {}})
     view.setStyle(sel2, {"cartoon": {}})
 
-    # --- Step 3: show thick sticks (PyMOL-like) ---
+    # ---- Thick sticks (PyMOL-like) ----
     view.setStyle(
         sel1,
-        {"stick": {"radius": 0.25, "color": base_colors.get(base1, "orange")}}
+        {"stick": {"radius": 0.35, "color": base_colors.get(base1, "orange")}}
     )
     view.setStyle(
         sel2,
-        {"stick": {"radius": 0.25, "color": base_colors.get(base2, "green")}}
+        {"stick": {"radius": 0.35, "color": base_colors.get(base2, "green")}}
     )
 
-    # --- Step 4: zoom tightly to the base pair ---
+    # ---- Tight zoom ----
     view.zoomTo({"or": [sel1, sel2]})
 
-    # --- Label ---
+    # ---- Label ----
     label1 = f"{chain1}:{resi1}{icode1 or ''}"
     label2 = f"{chain2}:{resi2}{icode2 or ''}"
 
@@ -149,11 +160,6 @@ def render_basepair_3d(
     )
 
     st.components.v1.html(view._make_html(), height=520)
-
-
-
-
-
 
 # ==================================================
 # STEP 1 — Page setup (ALWAYS first)
