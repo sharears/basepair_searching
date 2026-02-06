@@ -6,6 +6,7 @@ import numpy as np
 from collections import defaultdict
 import pyarrow.parquet as pq
 from PIL import Image
+import base64
 
 # --------------------------------------------------
 # Efficient hydrogen-bond matching (vectorized)
@@ -46,13 +47,11 @@ def find_bp_interest(df, bp, hbonds):
 # ==================================================
 # STEP 1 — Page setup (ALWAYS first)
 # ==================================================
-import base64
-import streamlit as st
 
-st.set_page_config(
-    page_title="RNA Base Pair Hydrogen Bond Explorer",
-    layout="wide"
-)
+##st.set_page_config(
+##    page_title="RNA Base Pair Hydrogen Bond Explorer",
+##    layout="wide"
+##)
 
 # ---------- helper: embed SVG safely ----------
 def svg_to_base64(svg_path):
@@ -61,13 +60,11 @@ def svg_to_base64(svg_path):
 
 
 # ---------- render header (SVG + title locked together) ----------
-import base64
-import streamlit as st
 
-st.set_page_config(
-    page_title="RNA Base Pair Hydrogen Bond Explorer",
-    layout="wide"
-)
+##st.set_page_config(
+##    page_title="RNA Base Pair Hydrogen Bond Explorer",
+##    layout="wide"
+##)
 
 def svg_to_base64(svg_path):
     with open(svg_path, "rb") as f:
