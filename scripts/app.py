@@ -206,17 +206,17 @@ st.markdown(
 st.markdown(
     """
     <style>
-    /* Increase font size of selectbox & text_input labels */
-    div[data-testid="stSelectbox"] label,
-    div[data-testid="stTextInput"] label {
-        font-size: 24px !important;
-        font-family: Arial, sans-serif;
+    /* Increase font size of widget labels */
+    span[data-testid="stWidgetLabel"] {
+        font-size: 22px !important;
+        font-family: Arial, sans-serif !important;
         font-weight: 600;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
+
 # ==================================================
 # User inputs
 # ==================================================
