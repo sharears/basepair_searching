@@ -124,7 +124,7 @@ def render_basepair_3d(
     # ---- Optional faint background (comment out to hide all else) ----
     view.setStyle(
         {},
-        {"cartoon": {"color": "lightgray", "opacity": 0.15}}
+        {"cartoon": {"color": "lightgray", "opacity": 0.8}}
     )
 
     # ---- Remove cartoon from base-pair residues ----
