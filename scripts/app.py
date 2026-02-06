@@ -92,11 +92,9 @@ def render_basepair_3d(
     base1=None, base2=None
 ):
 
-
     view = py3Dmol.view(query=f"pdb:{pdb_id.lower()}", width=600, height=500)
     view.setBackgroundColor("white")
 
-    # Base colors (PyMOL-like)
     base_colors = {
         "A": "orange",
         "G": "green",
@@ -104,30 +102,54 @@ def render_basepair_3d(
         "U": "brown"
     }
 
-    # ---- Build selections safely ----
     def make_sel(chain, resi, icode):
-        # --- Normalize chain ---
-        chain = str(chain).strip()
-
-        # --- Normalize residue number ---
-        try:
-            resi = int(float(resi))  # handles "45", "45.0", 45.0
-        except Exception:
-            return None  # invalid residue
-
         sel = {
-            "chain": chain,
-            "resi": resi,
-            "elem": ["C", "N", "O", "P"]
+            "model": 0,                    # 🔑 CRITICAL
+            "chain": str(chain).strip(),
+            "resi": int(resi)
         }
-
-        # --- Normalize insertion code ---
         if pd.notna(icode):
             icode = str(icode).strip()
-            if icode and icode.lower() != "nan":
+            if icode:
                 sel["icode"] = icode
-
         return sel
+
+    sel1 = make_sel(chain1, resi1, icode1)
+    sel2 = make_sel(chain2, resi2, icode2)
+
+    # Show whole structure faintly
+    view.setStyle({}, {"cartoon": {"color": "lightgray", "opacity": 0.25}})
+
+    # Remove cartoon for residues of interest
+    view.setStyle(sel1, {"cartoon": {}})
+    view.setStyle(sel2, {"cartoon": {}})
+
+    # Show thick sticks (PyMOL-like)
+    view.setStyle(
+        sel1,
+        {"stick": {"radius": 0.35, "color": base_colors.get(base1, "orange")}}
+    )
+    view.setStyle(
+        sel2,
+        {"stick": {"radius": 0.35, "color": base_colors.get(base2, "green")}}
+    )
+
+    view.zoomTo({"or": [sel1, sel2]})
+
+    view.addLabel(
+        f"{pdb_id.upper()}  "
+        f"{chain1}:{resi1}{icode1 or ''} – "
+        f"{chain2}:{resi2}{icode2 or ''}",
+        {
+            "fontColor": "black",
+            "backgroundColor": "white",
+            "borderColor": "gray",
+            "borderThickness": 1
+        }
+    )
+
+    st.components.v1.html(view._make_html(), height=520)
+
 
     sel1 = make_sel(chain1, resi1, icode1)
     sel2 = make_sel(chain2, resi2, icode2)
