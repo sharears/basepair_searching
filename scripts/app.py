@@ -187,7 +187,7 @@ st.markdown(
     f"""
     <div style="display:flex; justify-content:center;">
         <img src="data:image/svg+xml;base64,{svg_b64}"
-             style="width:1000px; max-width:95%;">
+             style="width:1400px; max-width:98%;">
     </div>
     """,
     unsafe_allow_html=True
