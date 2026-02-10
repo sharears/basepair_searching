@@ -100,9 +100,14 @@ def find_bp_interest(df, bp, hbonds):
         results[hbond] = results.apply(lambda row: extract_bp(row, hbond), axis=1)
 
     # Drop temporary columns
-    results1 = results.drop(columns=[col for col in results.columns if col.startswith('combined_')])
-    results1.index = np.arange(0, len(results1))
-
+    #results1 = results.drop(columns=[col for col in results.columns if col.startswith('combined_')])
+    #results1.index = np.arange(0, len(results1))
+    
+    #removing columns not require for visualization and download
+    col_drop = [col for col in results.columns if col.startswith('combined_hbond_')]
+    col_drop += [col for col in results.columns if col.startswith('distance_hbond_')]
+    col_drop += [col for col in results.columns if col.startswith('atoms_ID_hbond_')]
+    results1= results.drop(columns= ['nt1', 'nt2', ] + col_drop)
     return results1
 
 # ==================================================
