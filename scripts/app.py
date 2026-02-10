@@ -206,15 +206,17 @@ def svg_to_base64(svg_path):
 svg_b64 = svg_to_base64("assets/weird_bps.svg")
 
 # --- SVG (base64) ---
+st.set_page_config(layout="wide")
 st.markdown(
     f"""
     <div style="display:flex; justify-content:center;">
         <img src="data:image/svg+xml;base64,{svg_b64}"
-             style="width:90vw;">
+             style="width:70vw; max-width:1400px;">
     </div>
     """,
     unsafe_allow_html=True
 )
+
 
 
 # --- Title ---
