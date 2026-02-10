@@ -81,7 +81,30 @@ def find_bp_interest(df, bp, hbonds):
 
     results = df[mask]
 
-    return results
+    # Helper to extract hydrogen bond match
+    def extract_bp(row, hbond):
+        variants = [hbond, "-".join(hbond.split("-")[::-1])]
+        for i in range(1, 11):  # up to 10 H-bonds
+            col = f'combined_hbond_{i}'
+            if col in row:
+                val = row[col]
+                if isinstance(val, str):
+                    for v in variants:
+                        if v in val:
+                            try:
+                                return float(val.split('_')[-1])
+                            except:
+                                return None
+        return None
+    for hbond in hbonds:
+        results[hbond] = results.apply(lambda row: extract_bp(row, hbond), axis=1)
+
+    # Drop temporary columns
+    results1 = results.drop(columns=[col for col in results.columns if col.startswith('combined_')])
+    results1.index = np.arange(0, len(results1))
+
+    return results1
+
 # ==================================================
 # 3D structure rendering helper
 # ==================================================
