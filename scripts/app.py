@@ -22,7 +22,6 @@ def get_groq_client():
     """
     Create Groq client using Streamlit secrets first, then environment variable.
     """
-    api_key = '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'
 
     if "GROQ_API_KEY" in st.secrets:
         api_key = st.secrets["GROQ_API_KEY"]
@@ -94,7 +93,7 @@ def parse_hbond_description_with_llm(bp, user_text):
     Returns a list like:
     ["G.O6-C.N4", "G.N1-C.N3", "G.N2-C.O2"]
     """
-    client = Groq(api_key="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")
+    client = Groq(api_key=st.secrets.get("GROQ_API_KEY"))
     if client is None:
         return []
 
