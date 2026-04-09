@@ -94,7 +94,7 @@ def parse_hbond_description_with_llm(bp, user_text):
     Returns a list like:
     ["G.O6-C.N4", "G.N1-C.N3", "G.N2-C.O2"]
     """
-    client = get_groq_client()
+    client = Groq(api_key="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")
     if client is None:
         return []
 
