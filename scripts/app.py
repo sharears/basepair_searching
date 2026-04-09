@@ -192,15 +192,18 @@ USER REQUEST:
         )
 
         content = response.choices[0].message.content.strip()
+        st.write("Raw model text:", content)  # Debugging line to show raw LLM output
         parsed = json.loads(content)
         hbonds = parsed.get("hbonds", [])
 
+        st.write("Parsed JSON hbonds:", hbonds)  # Debugging line to show parsed hbonds list
         if not isinstance(hbonds, list):
             return []
 
         return [str(x).strip() for x in hbonds if str(x).strip()]
 
-    except Exception:
+    except Exception as e:
+        st.error(f"LLM parsing error: {e}")
         return []
 
 
