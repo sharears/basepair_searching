@@ -4,3 +4,4 @@ numpy
 gdown
 pyarrow
 py3Dmol
+groq
