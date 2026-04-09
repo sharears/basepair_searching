@@ -101,32 +101,73 @@ def parse_hbond_description_with_llm(bp, user_text):
     bp = normalize_base_pair(bp)
 
     prompt = f"""
-You are helping parse RNA base-pair hydrogen bond requests.
+You are an expert assistant for RNA base-pair hydrogen bond search.
 
-The selected base pair is: {bp}
+Your task is to convert a user's natural-language description of hydrogen bonds
+into a strict JSON object for database searching.
 
-Allowed atoms:
+SELECTED BASE PAIR:
+{bp}
+
+ALLOWED RESIDUES:
+Only use the two residues present in this selected base pair: {bp}
+
+ALLOWED ATOMS:
 A: {ALLOWED_ATOMS["A"]}
 G: {ALLOWED_ATOMS["G"]}
 C: {ALLOWED_ATOMS["C"]}
 U: {ALLOWED_ATOMS["U"]}
 
-Return ONLY valid JSON in this exact format:
+OUTPUT FORMAT:
+Return ONLY a valid JSON object in exactly this format:
 {{
-  "hbonds": ["X.ATOM-Y.ATOM", "X.ATOM-Y.ATOM"]
+  "hbonds": ["G.O6-C.N4", "G.N1-C.N3", "G.N2-C.O2"]
 }}
 
-Rules:
-1. Use exactly the format Residue.Atom-Residue.Atom
-2. Example: G.O6-C.N4
-3. Do not include explanations
-4. Do not include markdown
-5. Do not include any text outside JSON
-6. If the request is ambiguous or impossible, return:
+STRICT RULES:
+1. Output JSON only
+2. Do not write markdown
+3. Do not explain anything
+4. Do not include comments
+5. Each hydrogen bond must use this exact format:
+   Residue.Atom-Residue.Atom
+6. Keep the residue letters explicitly included
+7. Use only residues from the selected base pair: {bp}
+8. Use only atoms from the allowed atom lists
+9. If the user describes standard Watson-Crick GC pairing, return:
+   {{"hbonds": ["G.O6-C.N4", "G.N1-C.N3", "G.N2-C.O2"]}}
+10. If the user describes standard Watson-Crick AU pairing, return:
+   {{"hbonds": ["A.N1-U.N3", "A.N6-U.O4"]}}
+11. If the request is ambiguous, unclear, or impossible, return:
    {{"hbonds": []}}
-7. Use residue identities that are consistent with the selected base pair: {bp}
 
-User request:
+EXAMPLES:
+
+Example 1
+Selected base pair: G-C
+User: standard Watson-Crick GC hydrogen bonds
+Output:
+{{"hbonds": ["G.O6-C.N4", "G.N1-C.N3", "G.N2-C.O2"]}}
+
+Example 2
+Selected base pair: G-C
+User: guanine O6 to cytosine N4, guanine N1 to cytosine N3, and guanine N2 to cytosine O2
+Output:
+{{"hbonds": ["G.O6-C.N4", "G.N1-C.N3", "G.N2-C.O2"]}}
+
+Example 3
+Selected base pair: A-U
+User: Watson-Crick AU pair
+Output:
+{{"hbonds": ["A.N1-U.N3", "A.N6-U.O4"]}}
+
+Example 4
+Selected base pair: G-U
+User: guanine O6 with uridine N3
+Output:
+{{"hbonds": ["G.O6-U.N3"]}}
+
+USER REQUEST:
 \"\"\"{user_text}\"\"\"
 """
 
@@ -137,7 +178,11 @@ User request:
             messages=[
                 {
                     "role": "system",
-                    "content": "You convert RNA hydrogen-bond descriptions into strict JSON."
+                    "content": (
+                        "You are a precise RNA hydrogen-bond parser. "
+                        "You must return only valid JSON. "
+                        "Never include explanation, markdown, or extra text."
+                        )
                 },
                 {
                     "role": "user",
