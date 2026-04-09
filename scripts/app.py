@@ -22,7 +22,7 @@ def get_groq_client():
     """
     Create Groq client using Streamlit secrets first, then environment variable.
     """
-    api_key = None
+    api_key = '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'
 
     if "GROQ_API_KEY" in st.secrets:
         api_key = st.secrets["GROQ_API_KEY"]
