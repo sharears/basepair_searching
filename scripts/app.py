@@ -2,40 +2,56 @@ import streamlit as st
 import pandas as pd
 import gdown
 import os
+import re
+import json
 import numpy as np
 from collections import defaultdict
 import pyarrow.parquet as pq
 from PIL import Image
 import base64
 import py3Dmol
+from groq import Groq
 
-# --------------------------------------------------
+# ==================================================
+# LLM CONFIG
+# ==================================================
+MODEL_NAME = "llama-3.3-70b-versatile"
+
+
+def get_groq_client():
+    """
+    Create Groq client using Streamlit secrets first, then environment variable.
+    """
+    api_key = None
+
+    if "GROQ_API_KEY" in st.secrets:
+        api_key = st.secrets["GROQ_API_KEY"]
+    else:
+        api_key = os.environ.get("GROQ_API_KEY")
+
+    if not api_key:
+        return None
+
+    return Groq(api_key=api_key)
+
+
+# ==================================================
 # Global CSS (labels + selectbox text)
-# --------------------------------------------------
+# ==================================================
 st.markdown(
     """
     <style>
-    /* ----------------------------------
-       Widget labels
-       ---------------------------------- */
     [data-testid="stWidgetLabel"] * {
         font-size: 24px !important;
         font-family: Arial, sans-serif !important;
         font-weight: 600 !important;
     }
 
-    /* ----------------------------------
-       Selectbox selected value (closed)
-       ---------------------------------- */
     div[role="combobox"] {
         font-size: 22px !important;
         font-family: Arial, sans-serif !important;
     }
 
-    /* ----------------------------------
-       Selectbox dropdown menu items (OPEN)
-       Streamlit renders this in a portal
-       ---------------------------------- */
     div[role="listbox"] * {
         font-size: 22px !important;
         font-family: Arial, sans-serif !important;
@@ -47,68 +63,225 @@ st.markdown(
 )
 
 
+# ==================================================
+# Allowed atoms dictionary
+# ==================================================
+ALLOWED_ATOMS = {
+    "A": ["N1", "N3", "N6", "N7", "C2", "C8", "O2'"],
+    "G": ["N1", "N2", "N3", "O6", "N7", "C8", "O2'"],
+    "C": ["N3", "N4", "O2", "C5", "C6", "O2'"],
+    "U": ["N3", "O2", "O4", "C5", "C6", "O2'"],
+}
 
-# --------------------------------------------------
+
+# ==================================================
+# LLM parsing helpers
+# ==================================================
+def normalize_base_pair(bp):
+    """
+    Normalize base pair string to canonical format like G-C
+    """
+    bp = bp.strip().upper().replace("/", "-")
+    parts = bp.split("-")
+    if len(parts) != 2:
+        return bp
+    return f"{parts[0]}-{parts[1]}"
+
+
+def parse_hbond_description_with_llm(bp, user_text):
+    """
+    Convert user natural-language description into strict hydrogen-bond list.
+    Returns a list like:
+    ["G.O6-C.N4", "G.N1-C.N3", "G.N2-C.O2"]
+    """
+    client = get_groq_client()
+    if client is None:
+        return []
+
+    bp = normalize_base_pair(bp)
+
+    prompt = f"""
+You are helping parse RNA base-pair hydrogen bond requests.
+
+The selected base pair is: {bp}
+
+Allowed atoms:
+A: {ALLOWED_ATOMS["A"]}
+G: {ALLOWED_ATOMS["G"]}
+C: {ALLOWED_ATOMS["C"]}
+U: {ALLOWED_ATOMS["U"]}
+
+Return ONLY valid JSON in this exact format:
+{{
+  "hbonds": ["X.ATOM-Y.ATOM", "X.ATOM-Y.ATOM"]
+}}
+
+Rules:
+1. Use exactly the format Residue.Atom-Residue.Atom
+2. Example: G.O6-C.N4
+3. Do not include explanations
+4. Do not include markdown
+5. Do not include any text outside JSON
+6. If the request is ambiguous or impossible, return:
+   {{"hbonds": []}}
+7. Use residue identities that are consistent with the selected base pair: {bp}
+
+User request:
+\"\"\"{user_text}\"\"\"
+"""
+
+    try:
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            temperature=0,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You convert RNA hydrogen-bond descriptions into strict JSON."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
+
+        content = response.choices[0].message.content.strip()
+        parsed = json.loads(content)
+        hbonds = parsed.get("hbonds", [])
+
+        if not isinstance(hbonds, list):
+            return []
+
+        return [str(x).strip() for x in hbonds if str(x).strip()]
+
+    except Exception:
+        return []
+
+
+def validate_hbonds(hbonds, bp):
+    """
+    Validate and clean LLM-generated or manually entered hydrogen bonds.
+    Expected format: G.O6-C.N4
+    """
+    bp = normalize_base_pair(bp)
+    bp_parts = bp.split("-")
+    if len(bp_parts) != 2:
+        return []
+
+    allowed_residues = set(bp_parts)
+    pattern = re.compile(r"^[ACGU]\.[A-Za-z0-9']+-[ACGU]\.[A-Za-z0-9']+$")
+
+    cleaned = []
+
+    for h in hbonds:
+        h = h.strip()
+        if not pattern.match(h):
+            continue
+
+        left, right = h.split("-")
+        res1, atom1 = left.split(".", 1)
+        res2, atom2 = right.split(".", 1)
+
+        if res1 not in allowed_residues or res2 not in allowed_residues:
+            continue
+
+        if atom1 not in ALLOWED_ATOMS.get(res1, []):
+            continue
+
+        if atom2 not in ALLOWED_ATOMS.get(res2, []):
+            continue
+
+        cleaned.append(h)
+
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_cleaned = []
+    for h in cleaned:
+        if h not in seen:
+            unique_cleaned.append(h)
+            seen.add(h)
+
+    return unique_cleaned
+
+
+def parse_manual_hbonds(bp, manual_text):
+    """
+    Parse comma-separated manual input:
+    G.O6-C.N4, G.N1-C.N3, G.N2-C.O2
+    """
+    raw = [x.strip() for x in manual_text.split(",") if x.strip()]
+    return validate_hbonds(raw, bp)
+
+
+# ==================================================
 # Efficient hydrogen-bond matching (vectorized)
-# --------------------------------------------------
+# ==================================================
 def has_hbond(df, hbond):
     variants = [hbond, "-".join(hbond.split("-")[::-1])]
-    mask = False
+    mask = pd.Series(False, index=df.index)
 
     for i in range(1, 11):
         col = f"combined_hbond_{i}"
         if col in df.columns:
+            col_data = df[col].astype(str)
+            local_mask = pd.Series(False, index=df.index)
             for v in variants:
-                mask |= df[col].str.contains(v, na=False)
+                local_mask |= col_data.str.contains(re.escape(v), na=False)
+            mask |= local_mask
 
     return mask
 
 
 def find_bp_interest(df, bp, hbonds):
-    # Normalize base pair (GU == UG)
+    """
+    Search dataframe by base pair and exact hydrogen-bond requirements.
+    """
     bp_split = bp.split('-')
+    if len(bp_split) != 2:
+        return pd.DataFrame()
+
+    # Normalize base pair orientation (GU == UG)
     if bp_split[0] != bp_split[1]:
         bps = [bp, "-".join(bp_split[::-1])]
     else:
         bps = [bp]
 
-    # 🔥 No copy here (saves memory)
     mask = df["base_pair"].isin(bps)
 
-    # Apply hydrogen bond filters
     for hbond in hbonds:
         mask &= has_hbond(df, hbond)
 
-    results = df[mask]
+    results = df[mask].copy()
 
-    # Helper to extract hydrogen bond match
     def extract_bp(row, hbond):
         variants = [hbond, "-".join(hbond.split("-")[::-1])]
-        for i in range(1, 11):  # up to 10 H-bonds
+        for i in range(1, 11):
             col = f'combined_hbond_{i}'
-            if col in row:
+            if col in row.index:
                 val = row[col]
                 if isinstance(val, str):
                     for v in variants:
                         if v in val:
                             try:
                                 return float(val.split('_')[-1])
-                            except:
+                            except Exception:
                                 return None
         return None
+
     for hbond in hbonds:
         results[hbond] = results.apply(lambda row: extract_bp(row, hbond), axis=1)
 
-    # Drop temporary columns
-    #results1 = results.drop(columns=[col for col in results.columns if col.startswith('combined_')])
-    #results1.index = np.arange(0, len(results1))
-    
-    #removing columns not require for visualization and download
     col_drop = [col for col in results.columns if col.startswith('combined_hbond_')]
     col_drop += [col for col in results.columns if col.startswith('distance_hbond_')]
     col_drop += [col for col in results.columns if col.startswith('atoms_ID_hbond_')]
-    results1= results.drop(columns= ['nt1', 'nt2', ] + col_drop)
+
+    drop_cols = ['nt1', 'nt2'] + col_drop
+    drop_cols = [c for c in drop_cols if c in results.columns]
+
+    results1 = results.drop(columns=drop_cols)
     return results1
+
 
 # ==================================================
 # 3D structure rendering helper
@@ -119,7 +292,6 @@ def render_basepair_3d(
     chain2, resi2, icode2,
     base1=None, base2=None
 ):
-
     view = py3Dmol.view(query=f"pdb:{str(pdb_id).lower()}", width=700, height=520)
     view.setBackgroundColor("white")
 
@@ -129,7 +301,6 @@ def render_basepair_3d(
         return str(x).strip()
 
     def norm_resi(x):
-        # handles 45, 45.0, "45", "45.0"
         return int(float(x))
 
     def norm_icode(x):
@@ -150,13 +321,9 @@ def render_basepair_3d(
     sel1 = make_sel(chain1, resi1, icode1)
     sel2 = make_sel(chain2, resi2, icode2)
 
-    # 1) ALWAYS show the whole structure so the view is never blank
     view.setStyle({}, {"stick": {"radius": 0.12, "color": "lightgray"}})
-
-    # 2) Zoom to whole structure first (critical)
     view.zoomTo()
 
-    # 3) Try highlighting the two residues (do NOT constrain by resn)
     view.setStyle(
         sel1,
         {"stick": {"radius": 0.30, "color": base_colors.get(str(base1).strip(), "orange")}}
@@ -166,52 +333,36 @@ def render_basepair_3d(
         {"stick": {"radius": 0.30, "color": base_colors.get(str(base2).strip(), "green")}}
     )
 
-    # 4) Try zooming to the pair (but keep the full zoom already done)
     view.zoomTo({"or": [sel1, sel2]})
 
-    # Label
     label1 = f"{norm_chain(chain1)}:{norm_resi(resi1)}{norm_icode(icode1) or ''}"
     label2 = f"{norm_chain(chain2)}:{norm_resi(resi2)}{norm_icode(icode2) or ''}"
+
     view.addLabel(
         f"{str(pdb_id).upper()}  {label1} – {label2}",
-        {"fontColor": "black", "backgroundColor": "white", "borderColor": "gray", "borderThickness": 1}
+        {
+            "fontColor": "black",
+            "backgroundColor": "white",
+            "borderColor": "gray",
+            "borderThickness": 1
+        }
     )
 
     st.components.v1.html(view._make_html(), height=540)
 
 
-
-
 # ==================================================
-# STEP 1 — Page setup (ALWAYS first)
+# STEP 1 — Page setup
 # ==================================================
-
-##st.set_page_config(
-##    page_title="RNA Base Pair Hydrogen Bond Explorer",
-##    layout="wide"
-##)
-
-# ---------- helper: embed SVG safely ----------
 def svg_to_base64(svg_path):
     with open(svg_path, "rb") as f:
         return base64.b64encode(f.read()).decode("utf-8")
 
 
-# ---------- render header (SVG + title locked together) ----------
-
-##st.set_page_config(
-##    page_title="RNA Base Pair Hydrogen Bond Explorer",
-##    layout="wide"
-##)
-
-def svg_to_base64(svg_path):
-    with open(svg_path, "rb") as f:
-        return base64.b64encode(f.read()).decode("utf-8")
+st.set_page_config(layout="wide")
 
 svg_b64 = svg_to_base64("assets/weird_bps.svg")
 
-# --- SVG (base64) ---
-st.set_page_config(layout="wide")
 st.markdown(
     f"""
     <div style="display:flex; justify-content:center;">
@@ -222,9 +373,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
-
-# --- Title ---
 st.markdown(
     """
     <div style="
@@ -241,11 +389,8 @@ st.markdown(
 )
 
 
-
-
-
 # ==================================================
-# STEP 2 — Initialize session state (MUST come early)
+# STEP 2 — Initialize session state
 # ==================================================
 if "data_loaded" not in st.session_state:
     st.session_state.data_loaded = False
@@ -256,15 +401,19 @@ if "df_bp" not in st.session_state:
 if "results" not in st.session_state:
     st.session_state.results = None
 
+if "parsed_hbonds" not in st.session_state:
+    st.session_state.parsed_hbonds = []
+
+if "search_error" not in st.session_state:
+    st.session_state.search_error = None
+
 
 # ==================================================
 # Data loader (Parquet from Google Drive)
 # ==================================================
 @st.cache_data(show_spinner=True)
 def load_data_from_gdrive():
-
-    #test dataset
-    url= 'https://drive.google.com/file/d/1MH0Xjo8RjJMdIoUbpQlUEWrZfpMeG2yX/view?usp=sharing'
+    url = 'https://drive.google.com/file/d/1MH0Xjo8RjJMdIoUbpQlUEWrZfpMeG2yX/view?usp=sharing'
 
     file_id = url.split("/d/")[1].split("/")[0]
     download_url = f"https://drive.google.com/uc?id={file_id}"
@@ -275,7 +424,6 @@ def load_data_from_gdrive():
     df = pd.read_parquet(parquet_file)
     os.remove(parquet_file)
 
-    # 🔥 RECREATE combined_hbond_* columns (CRITICAL)
     suffix_groups = defaultdict(list)
     for col in df.columns:
         suffix = "_".join(col.split("_")[-2:])
@@ -303,7 +451,7 @@ if st.button("Load database"):
 
 
 # ==================================================
-# STEP 4 — Guard clause (CRITICAL)
+# STEP 4 — Guard clause
 # ==================================================
 if not st.session_state.data_loaded:
     st.info("Click **Load database** to start.")
@@ -311,14 +459,9 @@ if not st.session_state.data_loaded:
 
 
 # ==================================================
-# STEP 5 — Safe zone: use the data
+# STEP 5 — Safe zone
 # ==================================================
 df_bp = st.session_state.df_bp
-
-#st.success(
-#    f"Database loaded: {df_bp['PDB_ID'].nunique():,} unique structures "
-#    f"({len(df_bp):,} base pairs)"
-#)
 
 st.markdown(
     f"""
@@ -340,16 +483,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
-
-
-# ==================================================
-# Everything below here is normal app logic
-# ==================================================
 st.markdown(
     """
     <style>
-    /* Increase font size of widget labels */
     span[data-testid="stWidgetLabel"] {
         font-size: 30px !important;
         font-family: Arial, sans-serif !important;
@@ -360,10 +496,10 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+
 # ==================================================
 # User inputs
 # ==================================================
-
 st.markdown(
     """
     <div style="
@@ -380,6 +516,7 @@ st.markdown(
 )
 
 col1, col2 = st.columns([1, 2])
+
 with col1:
     bp = st.selectbox(
         "Select base pair",
@@ -387,30 +524,87 @@ with col1:
         key="bp_select"
     )
 
-
 with col2:
-    hbonds_input = st.text_input(
-        "Hydrogen bonds (comma-separated)",
-        placeholder="e.g. O6-N3, N2-O2",
-        key="hbonds_input"
+    input_mode = st.radio(
+        "Hydrogen-bond input mode",
+        ["Natural language", "Manual list"],
+        horizontal=True,
+        key="input_mode"
     )
 
-hbonds = [h.strip() for h in hbonds_input.split(",") if h.strip()]
-
-#if st.button("Search"):
-#    st.write("Search logic goes here")
+    if input_mode == "Natural language":
+        hbond_description = st.text_area(
+            "Describe the hydrogen bonds you want",
+            placeholder=(
+                "Example: standard Watson–Crick G-C hydrogen bonds, "
+                "with G.O6 to C.N4, G.N1 to C.N3, and G.N2 to C.O2"
+            ),
+            key="hbond_description",
+            height=120
+        )
+        manual_hbonds_input = ""
+    else:
+        manual_hbonds_input = st.text_input(
+            "Hydrogen bonds (comma-separated)",
+            placeholder="e.g. G.O6-C.N4, G.N1-C.N3, G.N2-C.O2",
+            key="hbonds_input"
+        )
+        hbond_description = ""
 
 
 # ==================================================
 # Run search
 # ==================================================
 if st.button("Search"):
-    if not hbonds:
-        st.warning("Please enter at least one hydrogen bond.")
-    else:
-        with st.spinner("Searching base-pair database..."):
-            st.session_state.results = find_bp_interest(df_bp, bp, hbonds)
+    st.session_state.search_error = None
+    st.session_state.parsed_hbonds = []
+    st.session_state.results = None
 
+    if input_mode == "Natural language":
+        if not hbond_description.strip():
+            st.session_state.search_error = "Please describe at least one hydrogen bond."
+        else:
+            with st.spinner("Interpreting hydrogen-bond description..."):
+                parsed_hbonds = parse_hbond_description_with_llm(bp, hbond_description)
+                parsed_hbonds = validate_hbonds(parsed_hbonds, bp)
+
+            if not parsed_hbonds:
+                st.session_state.search_error = (
+                    "Could not interpret a valid hydrogen-bond pattern from your description."
+                )
+            else:
+                st.session_state.parsed_hbonds = parsed_hbonds
+                with st.spinner("Searching base-pair database..."):
+                    st.session_state.results = find_bp_interest(df_bp, bp, parsed_hbonds)
+
+    else:
+        parsed_hbonds = parse_manual_hbonds(bp, manual_hbonds_input)
+
+        if not parsed_hbonds:
+            st.session_state.search_error = (
+                "Please enter valid hydrogen bonds like G.O6-C.N4, G.N1-C.N3."
+            )
+        else:
+            st.session_state.parsed_hbonds = parsed_hbonds
+            with st.spinner("Searching base-pair database..."):
+                st.session_state.results = find_bp_interest(df_bp, bp, parsed_hbonds)
+
+
+# ==================================================
+# Display parse/search status
+# ==================================================
+if st.session_state.search_error:
+    st.warning(st.session_state.search_error)
+
+if st.session_state.parsed_hbonds:
+    st.markdown(
+        f"**Interpreted hydrogen bonds:** {', '.join(st.session_state.parsed_hbonds)}"
+    )
+
+
+# ==================================================
+# Results
+# ==================================================
 results = st.session_state.results
 
 if results is not None:
@@ -441,9 +635,12 @@ if results is not None:
 
         if st.button("Show 3D structure", key="show_3d"):
             row = results.loc[selected_idx]
-            st.caption(f"3D selections: sel1={row['chain_ID_res1']}:{row['res_index_res1']} icode={row.get('icode_res1')} | "
-            f"sel2={row['chain_ID_res2']}:{row['res_index_res2']} icode={row.get('icode_res2')}")
 
+            st.caption(
+                f"3D selections: "
+                f"sel1={row['chain_ID_res1']}:{row['res_index_res1']} icode={row.get('icode_res1')} | "
+                f"sel2={row['chain_ID_res2']}:{row['res_index_res2']} icode={row.get('icode_res2')}"
+            )
 
             render_basepair_3d(
                 pdb_id=row["PDB_ID"],
@@ -465,5 +662,3 @@ if results is not None:
             file_name="bp_search_results.csv",
             mime="text/csv"
         )
-
-
