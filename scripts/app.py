@@ -191,11 +191,11 @@ USER REQUEST:
         )
 
         content = response.choices[0].message.content.strip()
-        st.write("Raw model text:", content)  # Debugging line to show raw LLM output
+        #st.write("Raw model text:", content)  # Debugging line to show raw LLM output
         parsed = json.loads(content)
         hbonds = parsed.get("hbonds", [])
 
-        st.write("Parsed JSON hbonds:", hbonds)  # Debugging line to show parsed hbonds list
+        #st.write("Parsed JSON hbonds:", hbonds)  # Debugging line to show parsed hbonds list
         if not isinstance(hbonds, list):
             return []
 
@@ -613,9 +613,9 @@ if st.button("Search"):
         else:
             with st.spinner("Interpreting hydrogen-bond description..."):
                 parsed_hbonds = parse_hbond_description_with_llm(bp, hbond_description)
-                st.write("LLM raw output:", parsed_hbonds)  # Debugging line to show raw LLM output
+                #st.write("LLM raw output:", parsed_hbonds)  # Debugging line to show raw LLM output
                 parsed_hbonds = validate_hbonds(parsed_hbonds, bp)
-                st.write("LLM raw output:", parsed_hbonds)  # Debugging line to show cleaned LLM output
+                #st.write("LLM raw output:", parsed_hbonds)  # Debugging line to show cleaned LLM output
 
             if not parsed_hbonds:
                 st.session_state.search_error = (
